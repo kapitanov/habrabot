@@ -1,0 +1,23 @@
+{
+	"go.useLanguageServer": true,
+	"go.autocompleteUnimportedPackages": true,
+	"go.formatTool": "gofmt",
+	"go.enableCodeLens": {
+		"references": true,
+		"runtest": true
+	},
+	"go.gocodePackageLookupMode": "go",
+	"go.toolsEnvVars": {
+		"GO111MODULE": "on"
+	},
+	"[go]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		},
+		"editor.formatOnSave": true
+	},
+	"gopls": {
+		"usePlaceholders": true,
+		"enhancedHover": true
+	}
+}

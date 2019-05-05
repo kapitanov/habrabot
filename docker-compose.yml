@@ -1,0 +1,12 @@
+version: '3'
+services:
+    habrabot:
+        image: habrabot
+        build:
+            context: .
+        env_file: ./.env
+        volumes:
+          - ./data/:/data
+        environment:
+            DB_PATH: /data/db.dat
+        restart: always
