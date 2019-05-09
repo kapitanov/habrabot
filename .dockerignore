@@ -1,6 +1,6 @@
 habrabot
 habrabot.exe
-data.bin
+rss.bin
 .env
 Dockerfile
 docker-compose.yml

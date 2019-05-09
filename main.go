@@ -59,7 +59,7 @@ func main() {
 		panic(err)
 	}
 
-	db, err := storage.NewBoltDBDriver(config.DBPath)
+	db, err := storage.NewBoltDBDriver(config.RSSDBPath)
 	if err != nil {
 		log.Fatal(err)
 	}

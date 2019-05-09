@@ -8,5 +8,5 @@ services:
         volumes:
           - ./data/:/data
         environment:
-            DB_PATH: /data/db.dat
+            RSS_DB_PATH: /data/rss.dat
         restart: always

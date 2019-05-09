@@ -11,7 +11,7 @@ type configuration struct {
 	TelegramChannel string        `env:"TELEGRAM_CHANNEL,required"`
 	RSSFeed         string        `env:"RSS_FEED,required"`
 	RSSFeedPeriod   time.Duration `env:"RSS_FEED_PERIOD" envDefault:"5m"`
-	DBPath          string        `env:"DB_PATH,required"`
+	RSSDBPath       string        `env:"RSS_DB_PATH,required"`
 }
 
 func readConfig() (*configuration, error) {
