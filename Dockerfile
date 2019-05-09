@@ -1,7 +1,12 @@
 FROM golang:1.12 AS builder
+ENV GO111MODULE=on
 WORKDIR /app
-COPY . /app
-RUN CGO_ENABLED=0 go build -o /out/habrabot
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/habrabot
 
 FROM alpine
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
