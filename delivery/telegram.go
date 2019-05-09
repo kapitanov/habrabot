@@ -67,7 +67,7 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 }
 
 func (c *telegramChannel) Publish(article *source.Article) error {
-	text := fmt.Sprintf("*%s*\n\n%s\n\n[%s %s](%s)", article.Title, article.Description, readMoreText, turtle.Emojis["arrow_right"], article.LinkURL)
+	text := fmt.Sprintf("*%s*\n\n%s", article.Title, article.Description)
 
 	if article.ImageURL != "" {
 		return c.publishTextAndImage(article, text, article.ImageURL)
@@ -81,6 +81,10 @@ func (c *telegramChannel) publishText(article *source.Article, text string) erro
 	msg.ChatID = c.chat.ID
 	msg.ParseMode = tgbotapi.ModeMarkdown
 	msg.DisableWebPagePreview = true
+
+	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
+	buttons := []tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonURL(buttonText, article.LinkURL)}
+	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons)
 
 	result, err := c.bot.Send(msg)
 	if err != nil {
@@ -100,6 +104,10 @@ func (c *telegramChannel) publishTextAndImage(article *source.Article, text, ima
 	photo := tgbotapi.NewPhotoUpload(c.chat.ID, tgbotapi.FileBytes{Bytes: bytes})
 	photo.Caption = text
 	photo.ParseMode = tgbotapi.ModeMarkdown
+
+	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
+	buttons := []tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonURL(buttonText, article.LinkURL)}
+	photo.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons)
 
 	result, err := c.bot.Send(photo)
 	if err != nil {

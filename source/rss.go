@@ -2,6 +2,7 @@ package source
 
 import (
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/mmcdole/gofeed"
@@ -49,11 +50,18 @@ func parseArticleFromRss(item *gofeed.Item) (*Article, error) {
 		return nil, err
 	}
 
+	u, err := url.Parse(item.Link)
+	if err != nil {
+		return nil, err
+	}
+
+	u.RawQuery = ""
+
 	article := &Article{
 		ID:          item.GUID,
 		Time:        *item.PublishedParsed,
 		Title:       item.Title,
-		LinkURL:     item.Link,
+		LinkURL:     u.String(),
 		Description: description,
 		Author:      "",
 		ImageURL:    imageURL,
