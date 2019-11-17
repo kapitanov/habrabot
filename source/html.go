@@ -1,6 +1,8 @@
 package source
 
 import (
+	"net/url"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -18,8 +20,15 @@ func normalizeHTML(input string) (string, error) {
 
 	text := extractHTMLNodeText(node, "")
 	text = strings.Trim(text, " \n")
-
+	text = replaceRegexp(text, "[\\n\\s]+\\n\\s*", "\n")
+	text = replaceRegexp(text, "  ", " ")
 	return text, nil
+}
+
+func replaceRegexp(text, regex, replace string) string {
+	r := regexp.MustCompile(regex)
+	text = r.ReplaceAllString(text, replace)
+	return text
 }
 
 func extractHTMLNodeText(node *html.Node, text string) string {
@@ -28,16 +37,18 @@ func extractHTMLNodeText(node *html.Node, text string) string {
 	}
 
 	if node.Type == html.ElementNode {
-		if node.Data == "br" {
+		switch node.Data {
+		case "br":
 			if len(text) > 0 {
 				text = text + "\n"
 			}
+			break
 
-			return text
-		}
-
-		if node.Data == "a" {
-			return text
+		case "a":
+			if !shouldExtractAnchorText(node) {
+				return text
+			}
+			break
 		}
 	}
 
@@ -46,6 +57,25 @@ func extractHTMLNodeText(node *html.Node, text string) string {
 	}
 
 	return text
+}
+
+func shouldExtractAnchorText(node *html.Node) bool {
+	// Skip hyperlinks wuth utm_source query parameter
+	for _, a := range node.Attr {
+		if a.Key == "href" {
+			u, err := url.Parse(a.Val)
+			if err != nil {
+				return false
+			}
+
+			_, exists := u.Query()["utm_source"]
+			if exists {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func extractImageURL(input string) (string, error) {
