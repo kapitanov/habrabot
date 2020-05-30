@@ -69,6 +69,10 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 func (c *telegramChannel) Publish(article *source.Article) error {
 	text := fmt.Sprintf("*%s*\n\n%s", article.Title, article.Description)
 
+	if len(text) > 4096 {
+		text = text[0:4090] + "..."
+	}
+
 	if article.ImageURL != "" {
 		return c.publishTextAndImage(article, text, article.ImageURL)
 	} else {
