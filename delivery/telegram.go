@@ -83,7 +83,7 @@ func (c *telegramChannel) Publish(article *source.Article) error {
 func (c *telegramChannel) publishText(article *source.Article, text string) error {
 	msg := tgbotapi.NewMessageToChannel("", text)
 	msg.ChatID = c.chat.ID
-	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ParseMode = tgbotapi.ModeHTML
 	msg.DisableWebPagePreview = true
 
 	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
