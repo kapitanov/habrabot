@@ -107,7 +107,7 @@ func (c *telegramChannel) publishTextAndImage(article *source.Article, text, ima
 
 	photo := tgbotapi.NewPhotoUpload(c.chat.ID, tgbotapi.FileBytes{Bytes: bytes})
 	photo.Caption = text
-	photo.ParseMode = tgbotapi.ModeMarkdown
+	photo.ParseMode = tgbotapi.ModeHTML
 
 	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
 	buttons := []tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonURL(buttonText, article.LinkURL)}
