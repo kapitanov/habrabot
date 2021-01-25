@@ -67,7 +67,7 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 }
 
 func (c *telegramChannel) Publish(article *source.Article) error {
-	text := fmt.Sprintf("*%s*\n\n%s", article.Title, article.Description)
+	text := fmt.Sprintf("<strong>%s</strong>\n\n%s", article.Title, article.Description)
 
 	if len(text) > 4096 {
 		text = text[0:4090] + "..."
