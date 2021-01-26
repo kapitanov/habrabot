@@ -1,7 +1,9 @@
 package source
 
 import (
+	"golang.org/x/net/html"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -84,5 +86,80 @@ func parseArticleFromRss(item *gofeed.Item) (*Article, error) {
 		i++
 	}
 
+	// Load web page and try parse OpenGraph tags
+	err = loadOpengraphTags(article)
+	if err != nil {
+		return nil, err
+	}
+
 	return article, nil
+}
+
+func loadOpengraphTags(article *Article) error {
+	resp, err := http.Get(article.LinkURL)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode >= 300 {
+		log.Printf("Unable to download \"%s\": %d", article.LinkURL, resp.StatusCode)
+		return nil
+	}
+
+	defer resp.Body.Close()
+
+	root, err := html.Parse(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	searchForOpengraphTags(article, root)
+
+	return nil
+}
+
+func searchForOpengraphTags(article *Article, node* html.Node) {
+	isMetaTag, property, content:= tryParseMetaTag(node)
+
+	if isMetaTag {
+		switch property {
+		case "og:title":
+			article.Title = content
+			break
+		case "og:image":
+			article.ImageURL = content
+			break
+		}
+		return
+	}
+
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		searchForOpengraphTags(article, c)
+	}
+}
+
+func tryParseMetaTag( node* html.Node) (bool, string, string) {
+	if node.Type == html.ElementNode && node.Data == "meta" {
+		property := ""
+		content := ""
+
+		for _, attr := range node.Attr {
+			switch attr.Key {
+			case "property":
+				property = attr.Val
+				break
+
+			case "content":
+				content = attr.Val
+				break
+			}
+		}
+
+		if property != "" && content != "" {
+			return true, property, content
+		}
+	}
+
+	return false, "", ""
+
 }
