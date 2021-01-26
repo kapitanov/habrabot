@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"fmt"
+	"html"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/hackebrot/turtle"
 	"github.com/kapitanov/habrabot/source"
 )
 
@@ -17,10 +17,6 @@ type telegramChannel struct {
 	bot  *tgbotapi.BotAPI
 	chat tgbotapi.Chat
 }
-
-const (
-	readMoreText = "Читать дальше"
-)
 
 // NewTelegramChannel creates new delivery channel that publishes messages into Telegram channel
 func NewTelegramChannel(token, channelNameOrID string) (Channel, error) {
@@ -67,7 +63,7 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 }
 
 func (c *telegramChannel) Publish(article *source.Article) error {
-	text := fmt.Sprintf("<strong>%s</strong>\n\n%s", article.Title, article.Description)
+	text := fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>\n\n%s", html.EscapeString(article.LinkURL), article.Title, article.Description)
 
 	if len(text) > 4096 {
 		text = text[0:4090] + "..."
@@ -85,10 +81,6 @@ func (c *telegramChannel) publishText(article *source.Article, text string) erro
 	msg.ChatID = c.chat.ID
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.DisableWebPagePreview = true
-
-	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
-	buttons := []tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonURL(buttonText, article.LinkURL)}
-	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons)
 
 	result, err := c.bot.Send(msg)
 	if err != nil {
@@ -108,10 +100,6 @@ func (c *telegramChannel) publishTextAndImage(article *source.Article, text, ima
 	photo := tgbotapi.NewPhotoUpload(c.chat.ID, tgbotapi.FileBytes{Bytes: bytes})
 	photo.Caption = text
 	photo.ParseMode = tgbotapi.ModeHTML
-
-	buttonText := fmt.Sprintf("%s %s", readMoreText, turtle.Emojis["arrow_right"])
-	buttons := []tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonURL(buttonText, article.LinkURL)}
-	photo.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons)
 
 	result, err := c.bot.Send(photo)
 	if err != nil {
