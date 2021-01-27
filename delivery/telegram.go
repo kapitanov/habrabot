@@ -65,13 +65,11 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 func (c *telegramChannel) Publish(article *source.Article) error {
 	text := fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>\n\n%s", html.EscapeString(article.LinkURL), article.Title, article.Description)
 
-	if len(text) > 4096 {
-		text = text[0:4090] + "..."
-	}
-
 	if article.ImageURL != "" {
+		text = trimLongText(text, 4096);
 		return c.publishTextAndImage(article, text, article.ImageURL)
 	} else {
+		text = trimLongText(text, 1024);
 		return c.publishText(article, text)
 	}
 }
@@ -122,4 +120,11 @@ func downloadImage(url string) ([]byte, error) {
 	}
 
 	return bytes, nil
+}
+
+func trimLongText(text string, max int) string {
+	if len(text) > max {
+		text = text[0:max - 3] + "..."
+	}
+	return text
 }
