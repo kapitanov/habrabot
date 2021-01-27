@@ -113,28 +113,34 @@ func loadOpengraphTags(article *Article) error {
 		return err
 	}
 
-	searchForOpengraphTags(article, root)
+	searchForOpengraphTags(article, root, false, false)
 
 	return nil
 }
 
-func searchForOpengraphTags(article *Article, node* html.Node) {
+func searchForOpengraphTags(article *Article, node* html.Node, hasTitleTag, hasImageTag bool) {
 	isMetaTag, property, content:= tryParseMetaTag(node)
 
 	if isMetaTag {
 		switch property {
 		case "og:title":
-			article.Title = content
+			if !hasTitleTag {
+				article.Title = content
+				hasTitleTag = true
+			}
 			break
 		case "og:image":
-			article.ImageURL = content
+			if !hasImageTag {
+				article.ImageURL = content
+				hasImageTag = true
+			}
 			break
 		}
 		return
 	}
 
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		searchForOpengraphTags(article, c)
+		searchForOpengraphTags(article, c, hasTitleTag, hasImageTag)
 	}
 }
 
