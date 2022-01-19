@@ -1,4 +1,4 @@
-FROM golang:1.12 AS builder
+FROM golang:1.17-alpine AS builder
 ENV GO111MODULE=on
 WORKDIR /app
 COPY go.mod .

@@ -10,6 +10,7 @@ import (
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
 	"github.com/kapitanov/habrabot/source"
 )
 
@@ -59,17 +60,23 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 		return nil, err
 	}
 
+	bot.Debug = true
 	return bot, nil
 }
+
+const (
+	maxTextLength         = 4096 - 4
+	maxMediaCaptionLength = 1024 - 32
+)
 
 func (c *telegramChannel) Publish(article *source.Article) error {
 	text := fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>\n\n%s", html.EscapeString(article.LinkURL), article.Title, article.Description)
 
 	if article.ImageURL != "" {
-		text = trimLongText(text, 4096);
+		text = trimLongText(text, maxTextLength)
 		return c.publishTextAndImage(article, text, article.ImageURL)
 	} else {
-		text = trimLongText(text, 1024);
+		text = trimLongText(text, maxMediaCaptionLength)
 		return c.publishText(article, text)
 	}
 }
@@ -124,7 +131,7 @@ func downloadImage(url string) ([]byte, error) {
 
 func trimLongText(text string, max int) string {
 	if len(text) > max {
-		text = text[0:max - 3] + "..."
+		text = text[0:max-3] + "..."
 	}
 	return text
 }

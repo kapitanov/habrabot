@@ -1,6 +1,6 @@
 module github.com/kapitanov/habrabot
 
-go 1.12
+go 1.17
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
@@ -15,4 +15,10 @@ require (
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+)
+
+require (
+	github.com/andybalholm/cascadia v1.0.0 // indirect
+	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a // indirect
+	golang.org/x/text v0.3.0 // indirect
 )
