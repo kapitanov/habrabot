@@ -1,12 +1,10 @@
 version: '3'
 services:
     habrabot:
-        image: habrabot
         build:
             context: .
+        image: habrabot
+        restart: always
         env_file: ./.env
         volumes:
           - ./data/:/data
-        environment:
-            RSS_DB_PATH: /data/rss.dat
-        restart: always

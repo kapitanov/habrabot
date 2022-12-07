@@ -1,5 +1,4 @@
-FROM golang:1.17-alpine AS builder
-ENV GO111MODULE=on
+FROM golang:1.19-alpine AS builder
 WORKDIR /app
 COPY go.mod .
 COPY go.sum .
@@ -12,4 +11,5 @@ FROM alpine
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 WORKDIR /app
 COPY --from=builder /out/habrabot /app/
+ENV RSS_DB_PATH /data/rss.dat
 CMD ./habrabot
