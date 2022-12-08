@@ -1,7 +1,8 @@
 # Habrabot
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/kapitanov/habrabot/Go?style=flat-square)
-![GitHub](https://img.shields.io/github/license/kapitanov/habrabot?style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/kapitanov/habrabot/Go)
+![Latest release](https://img.shields.io/github/release/kapitanov/habrabot)
+![License](https://img.shields.io/github/license/kapitanov/habrabot)
 
 A telegram bot that publishes items from an RSS feed into a Telegram channel.
 
