@@ -1,4 +1,5 @@
 habrabot
 habrabot.exe
+!cmd/habrabot
 data.bin
 .env

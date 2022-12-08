@@ -1,6 +1,16 @@
 habrabot
 habrabot.exe
+!cmd/habrabot
 rss.bin
 .env
 Dockerfile
 docker-compose.yml
+.golangci.yml
+.gitignore
+.dockerignore
+.editorconfig
+*.md
+LICENSE
+.vscode
+.idea
+Makefile

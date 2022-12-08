@@ -1,11 +1,12 @@
 package source
 
 import (
-	"golang.org/x/net/html"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"golang.org/x/net/html"
 
 	"github.com/mmcdole/gofeed"
 )
@@ -14,13 +15,13 @@ type rssFeed struct {
 	URL string
 }
 
-// NewRSSFeed creates new RSS feed reader
+// NewRSSFeed creates new RSS feed reader.
 func NewRSSFeed(url string) Feed {
 	log.Printf("Will read news from RSS feed \"%s\"", url)
 	return &rssFeed{url}
 }
 
-// Reads a list of feed items from RSS
+// Read method reads a list of feed items from RSS.
 func (r *rssFeed) Read() ([]*Article, error) {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(r.URL)
@@ -101,12 +102,14 @@ func loadOpengraphTags(article *Article) error {
 		return err
 	}
 
-	if resp.StatusCode >= 300 {
+	if resp.StatusCode >= http.StatusMultipleChoices {
 		log.Printf("Unable to download \"%s\": %d", article.LinkURL, resp.StatusCode)
 		return nil
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	root, err := html.Parse(resp.Body)
 	if err != nil {
@@ -118,23 +121,19 @@ func loadOpengraphTags(article *Article) error {
 	return nil
 }
 
-func searchForOpengraphTags(article *Article, node* html.Node, hasTitleTag, hasImageTag bool) {
-	isMetaTag, property, content:= tryParseMetaTag(node)
+func searchForOpengraphTags(article *Article, node *html.Node, hasTitleTag, hasImageTag bool) {
+	isMetaTag, property, content := tryParseMetaTag(node)
 
 	if isMetaTag {
 		switch property {
 		case "og:title":
 			if !hasTitleTag {
 				article.Title = content
-				hasTitleTag = true
 			}
-			break
 		case "og:image":
 			if !hasImageTag {
 				article.ImageURL = content
-				hasImageTag = true
 			}
-			break
 		}
 		return
 	}
@@ -144,7 +143,7 @@ func searchForOpengraphTags(article *Article, node* html.Node, hasTitleTag, hasI
 	}
 }
 
-func tryParseMetaTag( node* html.Node) (bool, string, string) {
+func tryParseMetaTag(node *html.Node) (bool, string, string) {
 	if node.Type == html.ElementNode && node.Data == "meta" {
 		property := ""
 		content := ""
@@ -153,11 +152,9 @@ func tryParseMetaTag( node* html.Node) (bool, string, string) {
 			switch attr.Key {
 			case "property":
 				property = attr.Val
-				break
 
 			case "content":
 				content = attr.Val
-				break
 			}
 		}
 
@@ -167,5 +164,4 @@ func tryParseMetaTag( node* html.Node) (bool, string, string) {
 	}
 
 	return false, "", ""
-
 }

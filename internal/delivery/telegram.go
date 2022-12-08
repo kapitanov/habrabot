@@ -3,15 +3,15 @@ package delivery
 import (
 	"fmt"
 	"html"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/kapitanov/habrabot/internal/source"
 
-	"github.com/kapitanov/habrabot/source"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type telegramChannel struct {
@@ -19,7 +19,7 @@ type telegramChannel struct {
 	chat tgbotapi.Chat
 }
 
-// NewTelegramChannel creates new delivery channel that publishes messages into Telegram channel
+// NewTelegramChannel creates new delivery channel that publishes messages into Telegram channel.
 func NewTelegramChannel(token, channelNameOrID string) (Channel, error) {
 	bot, err := connectToTelegram(token)
 	if err != nil {
@@ -70,7 +70,12 @@ const (
 )
 
 func (c *telegramChannel) Publish(article *source.Article) error {
-	text := fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>\n\n%s", html.EscapeString(article.LinkURL), article.Title, article.Description)
+	text := fmt.Sprintf(
+		"<a href=\"%s\"><strong>%s</strong></a>\n\n%s",
+		html.EscapeString(article.LinkURL),
+		article.Title,
+		article.Description,
+	)
 
 	if article.ImageURL != "" {
 		text = trimLongText(text, maxTextLength)
@@ -120,8 +125,12 @@ func downloadImage(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Body.Close()
-	bytes, err := ioutil.ReadAll(r.Body)
+
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}

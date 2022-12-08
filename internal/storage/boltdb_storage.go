@@ -5,7 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/kapitanov/habrabot/source"
+	"github.com/kapitanov/habrabot/internal/source"
+
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -17,7 +18,7 @@ var (
 	bucketName = []byte("articles")
 )
 
-// NewBoltDBDriver creates new storage driver tha uses BoltDB as a storage engine
+// NewBoltDBDriver creates new storage driver tha uses BoltDB as a storage engine.
 func NewBoltDBDriver(dbPath string) (Driver, error) {
 	driver := &boltdbDriver{dbPath}
 	err := driver.update(func(tx *bolt.Tx) error {
@@ -38,15 +39,15 @@ func NewBoltDBDriver(dbPath string) (Driver, error) {
 	return driver, nil
 }
 
-// Tries to write an article and returns storage status
-func (d *boltdbDriver) Store(article *source.Article) (StorageStatus, error) {
-	status := StatusNew
+// Store tries to write an article and returns storage status.
+func (d *boltdbDriver) Store(article *source.Article) (Status, error) {
+	status := New
 	err := d.update(func(tx *bolt.Tx) error {
 		key := []byte(strings.ToLower(article.ID))
 
 		bucket := tx.Bucket(bucketName)
 		if bucket.Get(key) != nil {
-			status = StatusOld
+			status = Old
 			return nil
 		}
 
