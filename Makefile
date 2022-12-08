@@ -38,11 +38,12 @@ docker:
 fmt:
 	@which goimports > /dev/null || echo "Installing goimports $(GOIMPORTS_VERSION)" && \
 		go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
-	goimports -local $(LOCAL_PACKAGES) -w -format-only
+	@goimports -local $(LOCAL_PACKAGES) -w -format-only $$(find . -type f -name '*.go')
 
 format: fmt # alias for fmt
 
 run:
-	@test -f .env || echo "Error: missing .env file" && exit 1
+	@test -f .env || (echo "Error: missing .env file" && exit 1)
 	@go build
-	@./$(PROJECT_NAME)
+	@./$(PROJECT_NAME) -env ./.env
+

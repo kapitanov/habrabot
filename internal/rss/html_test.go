@@ -1,6 +1,10 @@
-package source
+package rss
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNormalizeHTMLEmptyString(t *testing.T) {
 	s, err := normalizeHTML("")
@@ -8,9 +12,7 @@ func TestNormalizeHTMLEmptyString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s != "" {
-		t.Fatalf("expected empty string, got \"%s\"", s)
-	}
+	assert.Empty(t, s)
 }
 
 func TestNormalizeHTMLPlainText(t *testing.T) {
@@ -20,90 +22,74 @@ func TestNormalizeHTMLPlainText(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s != input {
-		t.Fatalf("expected \"%s\", got \"%s\"", input, s)
-	}
+	assert.Equal(t, s, input)
 }
 
 func TestNormalizeHTMLBasicMarkup(t *testing.T) {
 	input := "plain <b>bold</b> <strong>strong</strong> <i>italic</i> <i>italic and <b>bold</b></i>"
 	expected := "plain <b>bold</b> <strong>strong</strong> <i>italic</i> <i>italic and <b>bold</b></i>"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLHyperlinkMarkup(t *testing.T) {
 	input := "plain <a href=\"http://web.site\">url text</a> foo bar " +
 		"<a href=\"http://web.site?utm_source=test\">skip me</a> zed"
 	expected := "plain url text foo bar zed"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLImageMarkup(t *testing.T) {
 	input := "plain <img src=\"http://image.url\"> text"
 	expected := "plain text"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLLineBreak(t *testing.T) {
 	input := "<br>plain<br>text"
 	expected := "plain\ntext"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestExtractImageURLEmptyText(t *testing.T) {
 	input := ""
-	expected := ""
 
 	actual, err := extractImageURL(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
-	}
+	assert.Nil(t, actual)
 }
 
 func TestExtractImageURLNoImgTag(t *testing.T) {
 	input := "foo bar <b>foo</b><i>bar</i>"
-	expected := ""
 
 	actual, err := extractImageURL(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
-	}
+	assert.Nil(t, actual)
 }
 
 func TestExtractImageURLOneImgTag(t *testing.T) {
@@ -115,8 +101,8 @@ func TestExtractImageURLOneImgTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
+	if assert.NotNil(t, actual) {
+		assert.Equal(t, expected, *actual)
 	}
 }
 
@@ -129,8 +115,8 @@ func TestExtractImageURLFewImgTags(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
+	if assert.NotNil(t, actual) {
+		assert.Equal(t, expected, *actual)
 	}
 }
 
@@ -156,9 +142,7 @@ func TestHabrPreview1(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestHabrPreview2(t *testing.T) {
@@ -190,9 +174,7 @@ func TestHabrPreview2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestHabrPreview3(t *testing.T) {
@@ -255,7 +237,5 @@ func TestHabrPreview3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }

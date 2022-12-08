@@ -3,3 +3,5 @@ habrabot.exe
 !cmd/habrabot
 data.bin
 .env
+var
+

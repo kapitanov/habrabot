@@ -11,5 +11,5 @@ FROM alpine
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 WORKDIR /app
 COPY --from=builder /out/habrabot /app/
-ENV RSS_DB_PATH /data/rss.dat
+ENV BOLTDB_PATH /data/rss.dat
 CMD ./habrabot

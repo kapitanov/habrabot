@@ -1,4 +1,4 @@
-package source
+package rss
 
 import (
 	"net/url"
@@ -181,24 +181,26 @@ func isUtmHyperlink(node *html.Node) bool {
 	return false
 }
 
-func extractImageURL(input string) (string, error) {
+func extractImageURL(input string) (*string, error) {
+	var nilStr *string = nil
+
 	if input == "" {
-		return "", nil
+		return nilStr, nil
 	}
 
 	nodes, err := html.ParseFragment(strings.NewReader(input), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, node := range nodes {
 		u := extractHTMLNodeImageURL(node)
 		if u != "" {
-			return u, nil
+			return &u, nil
 		}
 	}
 
-	return "", nil
+	return nilStr, nil
 }
 
 func extractHTMLNodeImageURL(node *html.Node) string {
