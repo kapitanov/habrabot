@@ -21,15 +21,14 @@ func UseBoltDB(dbPath string, feed data.Feed) data.Feed {
 		dbPath: dbPath,
 	}
 
-	return data.Filter(feed, func(article data.Article) (bool, error) {
-		return storage.Filter(article)
-	})
+	return data.Filter(feed, storage)
 }
 
 type boltDBStorage struct {
 	dbPath string
 }
 
+// Filter returns true if an article passes through the filter, and false otherwise.
 func (s *boltDBStorage) Filter(article data.Article) (bool, error) {
 	var isVisible bool
 	err := openDB(s.dbPath, func(tx *bolt.Tx) error {

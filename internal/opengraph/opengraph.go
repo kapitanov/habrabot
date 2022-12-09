@@ -11,11 +11,11 @@ import (
 
 // Enrich adds opengraph data into the stream of articles.
 func Enrich(feed data.Feed) data.Feed {
-	return data.Transform(feed, func(article *data.Article) error {
+	return data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
 		// Load web page and try parse OpenGraph tags
 		loadOpengraphTags(article)
 		return nil
-	})
+	}))
 }
 
 func loadOpengraphTags(article *data.Article) {

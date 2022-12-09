@@ -67,12 +67,12 @@ func (c configuration) CreateConsumer() data.Consumer {
 
 func sync(feed data.Feed, consumer data.Consumer) error {
 	newArticleCount := 0
-	feed = data.Transform(feed, func(article *data.Article) error {
+	feed = data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
 		log.Printf("new article from feed: %s", article.ID)
 		newArticleCount++
 
 		return nil
-	})
+	}))
 
 	err := feed.Read(consumer)
 	if err != nil {

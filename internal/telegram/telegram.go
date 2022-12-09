@@ -54,7 +54,6 @@ func (t *transmitter) On(article data.Article) error {
 	if err != nil {
 		return err
 	}
-	// transmitter
 
 	result, err := t.bot.Send(msg)
 	if err != nil {
