@@ -1,4 +1,4 @@
-package source
+package rss
 
 import (
 	"net/url"
@@ -31,6 +31,7 @@ func replaceRegexp(text, regex, replace string) string {
 	return text
 }
 
+//nolint:cyclop // Will refactor later
 func extractHTMLNodeText(node *html.Node) string {
 	// Text nodes
 	if node.Type == html.TextNode {
@@ -53,12 +54,10 @@ func extractHTMLNodeText(node *html.Node) string {
 			if isUtmHyperlink(node) {
 				return ""
 			}
-			break
 
 		case "b", "strong", "i", "em", "code", "s", "strike", "del", "u":
 			// Supported tags
 			wrappingTag = node.Data
-			break
 
 		case "pre":
 			// Special handling for <pre>
@@ -66,12 +65,10 @@ func extractHTMLNodeText(node *html.Node) string {
 
 		case "p":
 			addFinalNewline = true
-			break
 
 		case "li":
 			textPrefix = "- "
 			addFinalNewline = true
-			break
 		}
 	}
 
@@ -184,24 +181,26 @@ func isUtmHyperlink(node *html.Node) bool {
 	return false
 }
 
-func extractImageURL(input string) (string, error) {
+func extractImageURL(input string) (*string, error) {
+	var nilStr *string = nil
+
 	if input == "" {
-		return "", nil
+		return nilStr, nil
 	}
 
 	nodes, err := html.ParseFragment(strings.NewReader(input), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, node := range nodes {
-		url := extractHTMLNodeImageURL(node)
-		if url != "" {
-			return url, nil
+		u := extractHTMLNodeImageURL(node)
+		if u != "" {
+			return &u, nil
 		}
 	}
 
-	return "", nil
+	return nilStr, nil
 }
 
 func extractHTMLNodeImageURL(node *html.Node) string {
@@ -214,9 +213,9 @@ func extractHTMLNodeImageURL(node *html.Node) string {
 	}
 
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		url := extractHTMLNodeImageURL(c)
-		if url != "" {
-			return url
+		u := extractHTMLNodeImageURL(c)
+		if u != "" {
+			return u
 		}
 	}
 

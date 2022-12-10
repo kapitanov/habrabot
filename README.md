@@ -22,8 +22,8 @@ Finally, create a `.env` file:
 
 ```shell
 TELEGRAM_TOKEN=my-telegram-bot-token
-TELEGRAM_CHANNEL=@channel_name
-RSS_FEED=https://site.com/rss.xml
+TELEGRAM_CHANNEL=@MyAwesomeChannel
+RSS_FEED=https://habr.com/ru/rss/all/
 ```
 
 Here:
@@ -43,6 +43,8 @@ services:
         image: ghcr.io/kapitanov/habrabot:latest
         restart: always
         env_file: ./.env
+        environment:
+            BOLTDB_PATH: "/data/boltdb.dat"
         logging:
             driver: "json-file"
             options:

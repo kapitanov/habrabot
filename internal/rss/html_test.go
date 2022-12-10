@@ -1,6 +1,10 @@
-package source
+package rss
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNormalizeHTMLEmptyString(t *testing.T) {
 	s, err := normalizeHTML("")
@@ -8,9 +12,7 @@ func TestNormalizeHTMLEmptyString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s != "" {
-		t.Fatalf("expected empty string, got \"%s\"", s)
-	}
+	assert.Empty(t, s)
 }
 
 func TestNormalizeHTMLPlainText(t *testing.T) {
@@ -20,90 +22,74 @@ func TestNormalizeHTMLPlainText(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s != input {
-		t.Fatalf("expected \"%s\", got \"%s\"", input, s)
-	}
+	assert.Equal(t, s, input)
 }
 
 func TestNormalizeHTMLBasicMarkup(t *testing.T) {
 	input := "plain <b>bold</b> <strong>strong</strong> <i>italic</i> <i>italic and <b>bold</b></i>"
 	expected := "plain <b>bold</b> <strong>strong</strong> <i>italic</i> <i>italic and <b>bold</b></i>"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLHyperlinkMarkup(t *testing.T) {
 	input := "plain <a href=\"http://web.site\">url text</a> foo bar " +
 		"<a href=\"http://web.site?utm_source=test\">skip me</a> zed"
 	expected := "plain url text foo bar zed"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLImageMarkup(t *testing.T) {
 	input := "plain <img src=\"http://image.url\"> text"
 	expected := "plain text"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestNormalizeHTMLLineBreak(t *testing.T) {
 	input := "<br>plain<br>text"
 	expected := "plain\ntext"
-	s, err := normalizeHTML(input)
+	actual, err := normalizeHTML(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if s != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, s)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestExtractImageURLEmptyText(t *testing.T) {
 	input := ""
-	expected := ""
 
 	actual, err := extractImageURL(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
-	}
+	assert.Nil(t, actual)
 }
 
 func TestExtractImageURLNoImgTag(t *testing.T) {
 	input := "foo bar <b>foo</b><i>bar</i>"
-	expected := ""
 
 	actual, err := extractImageURL(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
-	}
+	assert.Nil(t, actual)
 }
 
 func TestExtractImageURLOneImgTag(t *testing.T) {
@@ -115,8 +101,8 @@ func TestExtractImageURLOneImgTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
+	if assert.NotNil(t, actual) {
+		assert.Equal(t, expected, *actual)
 	}
 }
 
@@ -129,8 +115,8 @@ func TestExtractImageURLFewImgTags(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected \"%s\", got \"%s\"", expected, actual)
+	if assert.NotNil(t, actual) {
+		assert.Equal(t, expected, *actual)
 	}
 }
 
@@ -143,7 +129,8 @@ func TestHabrPreview1(t *testing.T) {
 		" <a href=\"https://www.youtube.com/watch?v=8_UoDmJi7U8\">Жизнеспособный код</a>." +
 		" Это было очень хорошо. Я полностью согласен с основными моментами ее выступления. " +
 		"С другой стороны, темой ее выступления было то, что я раньше должным образом не рассматривал.<br> " +
-		"<a href=\"https://habr.com/ru/post/476076/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=476076#habracut\">Читать дальше →</a>"
+		"<a href=\"https://habr.com/ru/post/476076/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=476076#habracut\">" +
+		"Читать дальше →</a>"
 	expected := "Привет, Хабр!\n" +
 		"Предлагаю вашему вниманию перевод статьи \"Too Clean?\" автора Robert C. Martin (Uncle Bob).\n" +
 		"Я только что посмотрел выступление Сары Мэй: Жизнеспособный код. " +
@@ -155,9 +142,7 @@ func TestHabrPreview1(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestHabrPreview2(t *testing.T) {
@@ -171,7 +156,8 @@ func TestHabrPreview2(t *testing.T) {
 		"<p>Google Cloud Load Balancer</p>" +
 		"<p>DigitalOcean Load Balancer</p>" +
 		"<p>Azure load balancer</p> " +
-		"<a href=\"https://habr.com/ru/post/538936/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=538936#habracut\">Читать далее</a>"
+		"<a href=\"https://habr.com/ru/post/538936/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=538936#habracut\">" +
+		"Читать далее</a>"
 	expected := "На текущий момент есть большое разнообразие обратных прокси серверов. Я перечислю только парочку из них.\n" +
 		"Nginx\n" +
 		"Envoy\n" +
@@ -188,9 +174,7 @@ func TestHabrPreview2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }
 
 func TestHabrPreview3(t *testing.T) {
@@ -222,8 +206,10 @@ func TestHabrPreview3(t *testing.T) {
 		"rel=\"nofollow noopener noreferrer\">наборы правил</a></li>\n" +
 		"<li><a href=\"https://go-ruleguard.github.io/play/\" " +
 		"rel=\"nofollow noopener noreferrer\">Онлайн песочница</a>, позволяющая попробовать ruleguard прямо в браузере</li>\n" +
-		"</ul><br>\n<img title=\"Автор иллюстрации: Татьяна Уфимцева @leased_line\" src=\"https://habrastorage.org/webt/jb/iy/a0/jbiya0ab6njechtwp9dwtxhmw24.jpeg\"> " +
-		"<a href=\"https://habr.com/ru/post/538930/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=538930#habracut\">Читать дальше &rarr;</a>"
+		"</ul><br>\n<img title=\"Автор иллюстрации: Татьяна Уфимцева @leased_line\" " +
+		"src=\"https://habrastorage.org/webt/jb/iy/a0/jbiya0ab6njechtwp9dwtxhmw24.jpeg\"> " +
+		"<a href=\"https://habr.com/ru/post/538930/?utm_source=habrahabr&amp;utm_medium=rss&amp;utm_campaign=538930#habracut\">" +
+		"Читать дальше &rarr;</a>"
 
 	expected := "А что, если я скажу вам, что линтеры для Go можно создавать вот таким декларативным способом?\n" +
 		"<pre language=\"go\">func alwaysTrue(m dsl.Matcher) {\n" +
@@ -251,7 +237,5 @@ func TestHabrPreview3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if actual != expected {
-		t.Fatalf("expected <<<\n%s\n>>>\ngot <<<\n%s\n>>>", expected, actual)
-	}
+	assert.Equal(t, expected, actual)
 }

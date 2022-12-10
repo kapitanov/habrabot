@@ -1,0 +1,48 @@
+linters:
+  enable-all: false
+  disable-all: false
+  enable:
+    - asciicheck # checks that your code does not contain non-ASCII identifiers
+    - bodyclose # checks whether HTTP response body is closed successfully
+    - cyclop # checks function and package cyclomatic complexity
+    - dupl # tool for code clone detection
+    - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
+    - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
+    - exportloopref # checks for pointers to enclosing loop variables
+    - forbidigo # forbids identifiers
+    - funlen # tool for detection of long functions
+    - gocognit # computes and checks the cognitive complexity of functions
+    - goconst # finds repeated strings that could be replaced by a constant
+    - gocritic # provides diagnostics that check for bugs, performance and style issues
+    - gocyclo # computes and checks the cyclomatic complexity of functions
+    - godot # checks if comments end in a period
+    - gosec # inspects source code for security problems
+    - lll # reports long lines
+    - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
+    - nilerr # finds the code that returns nil even if it checks that the error is not nil
+    - nilnil # checks that there is no simultaneous return of nil error and an invalid value
+    - nolintlint # reports ill-formed or insufficient nolint directives
+    - reassign # checks that package variables are not reassigned
+    - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
+    - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
+    - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
+    - whitespace # detects leading and trailing whitespace
+    - interfacebloat # checks the number of methods inside an interface
+linters-settings:
+  funlen:
+    lines: 100
+    statements: -1
+
+  nolintlint:
+    allow-no-explanation:
+      - funlen
+      - gocognit
+      - lll
+    require-explanation: true
+    require-specific: true
+
+  lll:
+    line-length: 150
+
+  dupl:
+    threshold: 200
