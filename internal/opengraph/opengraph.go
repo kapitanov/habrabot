@@ -1,6 +1,7 @@
 package opengraph
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -13,21 +14,40 @@ import (
 func Enrich(feed data.Feed) data.Feed {
 	return data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
 		// Load web page and try parse OpenGraph tags
-		loadOpengraphTags(article)
+		t, err := loadTags(article.LinkURL)
+		if err == nil {
+			// Errors are ignored here
+			t.Enrich(article)
+		}
 		return nil
 	}))
 }
 
-func loadOpengraphTags(article *data.Article) {
-	resp, err := http.Get(article.LinkURL)
+type tags struct {
+	Title    *string
+	ImageURL *string
+}
+
+func (t tags) Enrich(article *data.Article) {
+	if t.Title != nil {
+		article.Title = *t.Title
+	}
+
+	if t.ImageURL != nil {
+		article.ImageURL = t.ImageURL
+	}
+}
+
+func loadTags(sourceURL string) (tags, error) {
+	resp, err := http.Get(sourceURL)
 	if err != nil {
-		log.Printf("unable to download \"%s\": %v", article.LinkURL, err)
-		return
+		log.Printf("unable to download \"%s\": %v", sourceURL, err)
+		return tags{}, err
 	}
 
 	if resp.StatusCode >= http.StatusMultipleChoices {
-		log.Printf("unable to download \"%s\": %v", article.LinkURL, resp.Status)
-		return
+		log.Printf("unable to download \"%s\": %v", sourceURL, resp.Status)
+		return tags{}, fmt.Errorf("unable to download \"%s\": %v", sourceURL, resp.Status)
 	}
 
 	defer func() {
@@ -36,54 +56,77 @@ func loadOpengraphTags(article *data.Article) {
 
 	root, err := html.Parse(resp.Body)
 	if err != nil {
-		log.Printf("unable to process \"%s\": %v", article.LinkURL, err)
-		return
+		log.Printf("unable to parse \"%s\": %v", sourceURL, err)
+		return tags{}, err
 	}
 
-	searchForOpengraphTags(article, root, false, false)
+	t := parseTags(root)
+	return t, nil
 }
 
-func searchForOpengraphTags(article *data.Article, node *html.Node, hasTitleTag, hasImageTag bool) {
-	isMetaTag, property, content := tryParseMetaTag(node)
+func parseTags(root *html.Node) tags {
+	t := tags{}
 
-	if isMetaTag {
-		switch property {
-		case "og:title":
-			if !hasTitleTag {
-				article.Title = content
-			}
-		case "og:image":
-			if !hasImageTag {
-				article.ImageURL = &content
+	// Find <html> node
+	htmlNode := findNode(root, "html")
+	if htmlNode != nil {
+		// Find <head> node
+		headNode := findNode(htmlNode, "head")
+
+		// Scan its children looking for <meta>
+		if headNode != nil {
+			for node := headNode.FirstChild; node != nil; node = node.NextSibling {
+				if node.Type != html.ElementNode || node.Data != "meta" {
+					continue
+				}
+
+				processMetaTag(node, &t)
 			}
 		}
-		return
 	}
 
-	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		searchForOpengraphTags(article, c, hasTitleTag, hasImageTag)
+	return t
+}
+
+func findNode(root *html.Node, name string) *html.Node {
+	queue := []*html.Node{root}
+
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+
+		if node.Type == html.ElementNode && node.Data == name {
+			return node
+		}
+
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			queue = append(queue, c)
+		}
+	}
+
+	return nil
+}
+
+func processMetaTag(node *html.Node, t *tags) {
+	key, value := decodeMetaTag(node)
+
+	switch key {
+	case "og:title":
+		t.Title = &value
+	case "og:image":
+		t.ImageURL = &value
 	}
 }
 
-func tryParseMetaTag(node *html.Node) (bool, string, string) {
-	if node.Type == html.ElementNode && node.Data == "meta" {
-		property := ""
-		content := ""
-
-		for _, attr := range node.Attr {
-			switch attr.Key {
-			case "property":
-				property = attr.Val
-
-			case "content":
-				content = attr.Val
-			}
-		}
-
-		if property != "" && content != "" {
-			return true, property, content
+func decodeMetaTag(node *html.Node) (key, value string) {
+	for _, attr := range node.Attr {
+		switch attr.Key {
+		case "property":
+			key = attr.Val
+		case "content":
+			value = attr.Val
 		}
 	}
 
-	return false, "", ""
+	return
 }
