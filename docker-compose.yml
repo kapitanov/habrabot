@@ -6,5 +6,7 @@ services:
         image: habrabot
         restart: always
         env_file: ./.env
+        environment:
+            BOLTDB_PATH: /data/boltdb.dat
         volumes:
           - ./data/:/data

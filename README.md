@@ -43,6 +43,8 @@ services:
         image: ghcr.io/kapitanov/habrabot:latest
         restart: always
         env_file: ./.env
+        environment:
+            BOLTDB_PATH: "/data/boltdb.dat"
         logging:
             driver: "json-file"
             options:
