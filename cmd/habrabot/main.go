@@ -1,8 +1,11 @@
 package habrabot
 
 import (
+	"errors"
 	"flag"
+	"golang.org/x/net/context"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -71,16 +74,16 @@ func (c configuration) CreateConsumer() data.Consumer {
 	return telegram.New(c.TelegramToken, c.TelegramChannel)
 }
 
-func sync(feed data.Feed, consumer data.Consumer) error {
+func runOnce(ctx context.Context, feed data.Feed, consumer data.Consumer) error {
 	newArticleCount := 0
-	feed = data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
+	feed = data.Transform(feed, data.TransformationFunc(func(_ context.Context, article *data.Article) error {
 		log.Printf("new article from feed: %s", article.ID)
 		newArticleCount++
 
 		return nil
 	}))
 
-	err := feed.Read(consumer)
+	err := feed.Read(ctx, consumer)
 	if err != nil {
 		return err
 	}
@@ -116,13 +119,45 @@ func Main() {
 
 	consumer := config.CreateConsumer()
 
-	// TODO graceful shutdown
-	for {
-		err = sync(feed, consumer)
-		if err != nil {
-			log.Fatal().Err(err).Msg("unable to run sync routine")
-		}
+	run(feed, consumer, config)
+}
 
-		time.Sleep(config.RSSFeedPeriod)
-	}
+func run(feed data.Feed, consumer data.Consumer, config configuration) {
+	syncTrigger := make(chan struct{}, 1)
+	syncTrigger <- struct{}{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	timer := time.NewTicker(config.RSSFeedPeriod)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		for range timer.C {
+			syncTrigger <- struct{}{}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		for range syncTrigger {
+			err := runOnce(ctx, feed, consumer)
+			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+
+				log.Fatal().Err(err).Msg("unable to run sync routine")
+			}
+		}
+	}()
+
+	log.Info().Msg("shutting down")
+	close(syncTrigger)
+	cancel()
+	timer.Stop()
+	wg.Wait()
+
+	log.Info().Msg("goodbye")
 }

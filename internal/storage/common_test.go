@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,9 +29,9 @@ func NewInMemoryFeed(articles []data.Article) data.Feed {
 
 type InMemoryFeed []data.Article
 
-func (f InMemoryFeed) Read(consumer data.Consumer) error {
+func (f InMemoryFeed) Read(ctx context.Context, consumer data.Consumer) error {
 	for _, article := range f {
-		err := consumer.On(article)
+		err := consumer.On(ctx, article)
 		if err != nil {
 			return err
 		}
@@ -41,12 +42,12 @@ func (f InMemoryFeed) Read(consumer data.Consumer) error {
 
 func Execute(t *testing.T, feed data.Feed) []data.Article {
 	var articles []data.Article
-	var consumer data.ConsumerFunc = func(article data.Article) error {
+	var consumer data.ConsumerFunc = func(_ context.Context, article data.Article) error {
 		articles = append(articles, article)
 		return nil
 	}
 
-	err := feed.Read(consumer)
+	err := feed.Read(context.Background(), consumer)
 	require.NoError(t, err)
 	return articles
 }

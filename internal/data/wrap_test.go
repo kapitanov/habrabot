@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 func TestWrap_NoOp(t *testing.T) {
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Wrap(feed, MiddlewareFunc(func(_ Article, _ func(article Article) error) error {
+		return Wrap(feed, MiddlewareFunc(func(_ context.Context, _ Article, _ NextFunc) error {
 			return nil
 		}))
 	}
@@ -24,7 +25,7 @@ func TestWrap_MiddlewareError(t *testing.T) {
 	expectedError := errors.New("expected error")
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Wrap(feed, MiddlewareFunc(func(_ Article, _ func(article Article) error) error {
+		return Wrap(feed, MiddlewareFunc(func(_ context.Context, _ Article, _ NextFunc) error {
 			return expectedError
 		}))
 	}
@@ -40,11 +41,11 @@ func TestWrap_ConsumerError(t *testing.T) {
 	expectedError := errors.New("expected error")
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Wrap(feed, MiddlewareFunc(func(article Article, next func(article Article) error) error {
+		return Wrap(feed, MiddlewareFunc(func(_ context.Context, article Article, next NextFunc) error {
 			return next(article)
 		}))
 	}
-	var consumer ConsumerFunc = func(_ Article) error {
+	var consumer ConsumerFunc = func(_ context.Context, _ Article) error {
 		return expectedError
 	}
 	input := NewArticles("1", "2", "3")
@@ -58,7 +59,7 @@ func TestWrap_Success(t *testing.T) {
 	beforeCount, afterCount := 0, 0
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Wrap(feed, MiddlewareFunc(func(article Article, next func(article Article) error) error {
+		return Wrap(feed, MiddlewareFunc(func(_ context.Context, article Article, next NextFunc) error {
 			beforeCount++
 
 			err := next(article)

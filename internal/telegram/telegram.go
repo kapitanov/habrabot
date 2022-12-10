@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -32,7 +33,7 @@ type transmitter struct {
 }
 
 // On method is invoked when an article is received from the feed.
-func (t *transmitter) On(article data.Article) error {
+func (t *transmitter) On(ctx context.Context, article data.Article) error {
 	err := t.connectToTelegram()
 	if err != nil {
 		log.Error().Err(err).Msg("unable to connect to telegram")
@@ -45,7 +46,7 @@ func (t *transmitter) On(article data.Article) error {
 		return err
 	}
 
-	msg, err := prepareMessage(article, t.chat.ID)
+	msg, err := prepareMessage(ctx, article, t.chat.ID, t.httpClient.StandardClient())
 	if err != nil {
 		log.Error().Err(err).Msg("unable to prepare telegram message")
 		return err

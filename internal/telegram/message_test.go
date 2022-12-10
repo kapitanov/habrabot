@@ -2,6 +2,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -142,7 +143,7 @@ func TestCreateTextAndImageMessage_NoTrim(t *testing.T) {
 
 	str = unicodeSlice(str, 0, maxMediaCaptionLength-10)
 	chatID := int64(1024)
-	chattable, err := createTextAndImageMessage(str, server.URL, chatID)
+	chattable, err := createTextAndImageMessage(context.Background(), str, server.URL, chatID, http.DefaultClient)
 	assert.NoError(t, err)
 
 	if assert.NotNil(t, chattable) {
@@ -191,7 +192,7 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 
 			str = unicodeSlice(str, 0, strLength)
 			chatID := int64(1024)
-			chattable, err := createTextAndImageMessage(str, server.URL, chatID)
+			chattable, err := createTextAndImageMessage(context.Background(), str, server.URL, chatID, http.DefaultClient)
 			assert.NoError(t, err)
 
 			if assert.NotNil(t, chattable) {

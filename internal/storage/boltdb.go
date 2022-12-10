@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ type boltDBStorage struct {
 }
 
 // Do method executes an action over a stream item.
-func (s *boltDBStorage) Do(article data.Article, next func(data.Article) error) error {
+func (s *boltDBStorage) Do(_m context.Context, article data.Article, next data.NextFunc) error {
 	return executeTX(s.dbPath, func(tx *bolt.Tx) error {
 		bucket, e := ensureBucket(tx)
 		if e != nil {

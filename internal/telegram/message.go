@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"io"
@@ -22,7 +23,12 @@ const (
 
 var ellipsisUTF8 = utf8string.NewString(ellipsis)
 
-func prepareMessage(article data.Article, chatID int64) (tgbotapi.Chattable, error) {
+func prepareMessage(
+	ctx context.Context,
+	article data.Article,
+	chatID int64,
+	httpClient *http.Client,
+) (tgbotapi.Chattable, error) {
 	text := fmt.Sprintf(
 		"<a href=\"%s\"><strong>%s</strong></a>\n\n%s",
 		html.EscapeString(article.LinkURL),
@@ -36,7 +42,7 @@ func prepareMessage(article data.Article, chatID int64) (tgbotapi.Chattable, err
 		return createTextMessage(text, chatID), nil
 	}
 
-	return createTextAndImageMessage(text, *article.ImageURL, chatID)
+	return createTextAndImageMessage(ctx, text, *article.ImageURL, chatID, httpClient)
 }
 
 func createTextMessage(text string, chatID int64) tgbotapi.Chattable {
@@ -50,8 +56,13 @@ func createTextMessage(text string, chatID int64) tgbotapi.Chattable {
 	return msg
 }
 
-func createTextAndImageMessage(text, imageURL string, chatID int64) (tgbotapi.Chattable, error) {
-	bytes, err := downloadImage(imageURL)
+func createTextAndImageMessage(
+	ctx context.Context,
+	text, imageURL string,
+	chatID int64,
+	httpClient *http.Client,
+) (tgbotapi.Chattable, error) {
+	bytes, err := downloadImage(ctx, imageURL, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -65,17 +76,26 @@ func createTextAndImageMessage(text, imageURL string, chatID int64) (tgbotapi.Ch
 	return photo, nil
 }
 
-func downloadImage(url string) ([]byte, error) {
-	r, err := http.DefaultClient.Get(url)
+func downloadImage(
+	ctx context.Context,
+	url string,
+	httpClient *http.Client,
+) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		_ = r.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
-	bytes, err := io.ReadAll(r.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

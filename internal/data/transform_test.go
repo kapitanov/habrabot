@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 func TestTransform_NoOp(t *testing.T) {
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Transform(feed, TransformationFunc(func(article *Article) error {
+		return Transform(feed, TransformationFunc(func(_ context.Context, article *Article) error {
 			return nil
 		}))
 	}
@@ -28,7 +29,7 @@ func TestTransform_Error(t *testing.T) {
 	expectedError := errors.New("expected error")
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Transform(feed, TransformationFunc(func(article *Article) error {
+		return Transform(feed, TransformationFunc(func(_ context.Context, article *Article) error {
 			return expectedError
 		}))
 	}
@@ -42,7 +43,7 @@ func TestTransform_Error(t *testing.T) {
 
 func TestTransform_Modify(t *testing.T) {
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Transform(feed, TransformationFunc(func(article *Article) error {
+		return Transform(feed, TransformationFunc(func(_ context.Context, article *Article) error {
 			article.ID = fmt.Sprintf("NEW:%v", article.ID)
 			return nil
 		}))

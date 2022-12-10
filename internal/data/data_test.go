@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,9 +27,9 @@ func NewInMemoryFeed(articles []Article) Feed {
 
 type InMemoryFeed []Article
 
-func (f InMemoryFeed) Read(consumer Consumer) error {
+func (f InMemoryFeed) Read(ctx context.Context, consumer Consumer) error {
 	for _, article := range f {
-		err := consumer.On(article)
+		err := consumer.On(ctx, article)
 		if err != nil {
 			return err
 		}
@@ -49,7 +50,7 @@ func RunFeed(
 	feed = pipeline(feed)
 	require.NotNil(t, feed)
 
-	return feed.Read(consumer)
+	return feed.Read(context.Background(), consumer)
 }
 
 func RunFeedInMemory(
@@ -58,7 +59,7 @@ func RunFeedInMemory(
 	pipeline Pipeline,
 ) ([]Article, error) {
 	var output []Article
-	consumer := ConsumerFunc(func(article Article) error {
+	consumer := ConsumerFunc(func(_ context.Context, article Article) error {
 		output = append(output, article)
 		return nil
 	})

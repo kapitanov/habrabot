@@ -1,6 +1,7 @@
 package rss
 
 import (
+	"context"
 	"net/url"
 	"sort"
 	"strings"
@@ -36,7 +37,7 @@ func New(url string) (data.Feed, error) {
 }
 
 // Read method reads feed items and streams them into the consumer.
-func (r *feed) Read(consumer data.Consumer) error {
+func (r *feed) Read(ctx context.Context, consumer data.Consumer) error {
 	fp := gofeed.NewParser()
 	fp.Client = r.HTTPClient.HTTPClient
 
@@ -48,6 +49,10 @@ func (r *feed) Read(consumer data.Consumer) error {
 
 	var articles []data.Article
 	for _, item := range feed.Items {
+		if isCanceled(ctx) {
+			return context.Canceled
+		}
+
 		article, err := parseArticleFromRss(item)
 		if err != nil {
 			log.Error().Err(err).Str("url", r.URL).Msg("unable to item from rss feed")
@@ -63,7 +68,7 @@ func (r *feed) Read(consumer data.Consumer) error {
 	})
 
 	for _, article := range articles {
-		err := consumer.On(article)
+		err := consumer.On(ctx, article)
 		if err != nil {
 			return err
 		}
@@ -118,4 +123,13 @@ func parseArticleFromRss(item *gofeed.Item) (data.Article, error) {
 	}
 
 	return article, nil
+}
+
+func isCanceled(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }

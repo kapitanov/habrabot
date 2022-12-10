@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 func TestFilter_Block(t *testing.T) {
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Filter(feed, PredicateFunc(func(_ Article) (bool, error) {
+		return Filter(feed, PredicateFunc(func(_ context.Context, _ Article) (bool, error) {
 			return false, nil
 		}))
 	}
@@ -22,7 +23,7 @@ func TestFilter_Block(t *testing.T) {
 
 func TestFilter_Pass(t *testing.T) {
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Filter(feed, PredicateFunc(func(_ Article) (bool, error) {
+		return Filter(feed, PredicateFunc(func(_ context.Context, _ Article) (bool, error) {
 			return true, nil
 		}))
 	}
@@ -40,7 +41,7 @@ func TestFilter_PassAndBlock(t *testing.T) {
 	input := NewArticles("1", "2", "3", "4")
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Filter(feed, PredicateFunc(func(article Article) (bool, error) {
+		return Filter(feed, PredicateFunc(func(_ context.Context, article Article) (bool, error) {
 			if article.ID == input[0].ID || article.ID == input[2].ID {
 				return true, nil
 			}
@@ -61,7 +62,7 @@ func TestFilter_Error(t *testing.T) {
 	expectedError := errors.New("expected error")
 
 	var pipeline Pipeline = func(feed Feed) Feed {
-		return Filter(feed, PredicateFunc(func(_ Article) (bool, error) {
+		return Filter(feed, PredicateFunc(func(_ context.Context, _ Article) (bool, error) {
 			return false, expectedError
 		}))
 	}

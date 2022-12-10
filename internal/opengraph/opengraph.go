@@ -1,6 +1,7 @@
 package opengraph
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -18,7 +19,7 @@ import (
 func Enrich(feed data.Feed) data.Feed {
 	var httpClient *retryablehttp.Client
 
-	return data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
+	return data.Transform(feed, data.TransformationFunc(func(ctx context.Context, article *data.Article) error {
 		if httpClient == nil {
 			var err error
 			httpClient, err = httpclient.New(httpclient.OpengraphPolicy)
@@ -28,7 +29,7 @@ func Enrich(feed data.Feed) data.Feed {
 		}
 
 		// Load web page and try parse OpenGraph tags
-		t, err := loadTags(article.LinkURL, httpClient)
+		t, err := loadTags(ctx, article.LinkURL, httpClient)
 		if err == nil {
 			// Errors are ignored here
 			t.Enrich(article)
@@ -52,8 +53,14 @@ func (t tags) Enrich(article *data.Article) {
 	}
 }
 
-func loadTags(sourceURL string, httpClient *retryablehttp.Client) (tags, error) {
-	resp, err := httpClient.Get(sourceURL)
+func loadTags(ctx context.Context, sourceURL string, httpClient *retryablehttp.Client) (tags, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
+	if err != nil {
+		log.Warn().Err(err).Str("url", sourceURL).Msg("unable to download web page")
+		return tags{}, err
+	}
+
+	resp, err := httpClient.StandardClient().Do(req)
 	if err != nil {
 		log.Warn().Err(err).Str("url", sourceURL).Msg("unable to download web page")
 		return tags{}, err

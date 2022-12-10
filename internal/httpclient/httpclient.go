@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -103,6 +104,17 @@ func (_ rssPolicy) ConfigureHTTP(client *retryablehttp.Client) {
 	client.RetryMax = 10
 	client.RetryWaitMin = time.Second
 	client.RetryWaitMin = 30 * time.Second
+	client.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+
+		return true, nil
+	}
 }
 
 func (_ rssPolicy) CreateLogger() zerolog.Logger {

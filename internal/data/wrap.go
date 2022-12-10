@@ -1,17 +1,22 @@
 package data
 
+import "context"
+
+// NextFunc is a "next" function for middlewares.
+type NextFunc func(article Article) error
+
 // Middleware allows to hook into stream processing pipeline.
 type Middleware interface {
 	// Do method executes an action over a stream item.
-	Do(article Article, next func(article Article) error) error
+	Do(ctx context.Context, article Article, next NextFunc) error
 }
 
 // MiddlewareFunc is a function that implements Middleware interface.
-type MiddlewareFunc func(article Article, next func(article Article) error) error
+type MiddlewareFunc func(ctx context.Context, article Article, next NextFunc) error
 
 // Do method executes an action over a stream item.
-func (mw MiddlewareFunc) Do(article Article, next func(Article) error) error {
-	return mw(article, next)
+func (mw MiddlewareFunc) Do(ctx context.Context, article Article, next NextFunc) error {
+	return mw(ctx, article, next)
 }
 
 // Wrap applies wraps stream into a middleware.
@@ -28,8 +33,12 @@ type wrapper struct {
 }
 
 // Read method reads feed items and streams them into the consumer.
-func (w *wrapper) Read(consumer Consumer) error {
-	return w.feed.Read(ConsumerFunc(func(article Article) error {
-		return w.middleware.Do(article, consumer.On)
+func (w *wrapper) Read(ctx context.Context, consumer Consumer) error {
+	return w.feed.Read(ctx, ConsumerFunc(func(ctx context.Context, article Article) error {
+		var next NextFunc = func(a Article) error {
+			return consumer.On(ctx, a)
+		}
+
+		return w.middleware.Do(ctx, article, next)
 	}))
 }
