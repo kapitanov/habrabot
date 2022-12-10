@@ -61,13 +61,19 @@ func (t *transmitter) On(article data.Article) error {
 
 	result, err := t.bot.Send(msg)
 	if err != nil {
-		log.Error().Err(err).Msg("unable to send to telegram")
+		log.Error().
+			Err(err).
+			Str("title", article.Title).
+			Str("id", article.ID).
+			Msg("unable to send to telegram")
 		return err
 	}
 
 	log.Info().
 		Int("msg", result.MessageID).
 		Str("channel", fmt.Sprintf("@%v", t.chat.UserName)).
+		Str("title", article.Title).
+		Str("id", article.ID).
 		Msg("posted a telegram message")
 	return nil
 }

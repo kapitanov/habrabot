@@ -21,33 +21,38 @@ func UseBoltDB(feed data.Feed, dbPath string) data.Feed {
 		dbPath: dbPath,
 	}
 
-	// TODO turn into middleware
-
-	return data.Filter(feed, storage)
+	return data.Wrap(feed, storage)
 }
 
 type boltDBStorage struct {
 	dbPath string
 }
 
-// Filter returns true if an article passes through the filter, and false otherwise.
-func (s *boltDBStorage) Filter(article data.Article) (bool, error) {
-	var isVisible bool
-	err := executeTX(s.dbPath, func(tx *bolt.Tx) error {
+// Do method executes an action over a stream item.
+func (s *boltDBStorage) Do(article data.Article, next func(data.Article) error) error {
+	return executeTX(s.dbPath, func(tx *bolt.Tx) error {
 		bucket, e := ensureBucket(tx)
 		if e != nil {
 			return e
 		}
 
-		isVisible, e = doFilter(bucket, article)
-		if e != nil {
-			log.Error().Err(e).Msg("unable to apply filter")
-			return e
+		key := []byte(strings.ToLower(article.ID))
+		if !hasBeenProcessed(bucket, key) {
+			e = next(article)
+			if e != nil {
+				log.Error().Err(e).Str("id", article.ID).Msg("unable to process feed item")
+				return e
+			}
+
+			e = markAsProcessed(bucket, key, article)
+			if e != nil {
+				log.Error().Err(e).Str("id", article.ID).Msg("unable to mark feed item as processed")
+				return e
+			}
 		}
 
 		return nil
 	})
-	return isVisible, err
 }
 
 func executeTX(dbPath string, fn func(tx *bolt.Tx) error) error {
@@ -104,21 +109,20 @@ func ensureBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bucket, nil
 }
 
-func doFilter(bucket *bolt.Bucket, article data.Article) (bool, error) {
-	key := []byte(strings.ToLower(article.ID))
-	if bucket.Get(key) != nil {
-		return false, nil
-	}
+func hasBeenProcessed(bucket *bolt.Bucket, key []byte) bool {
+	return bucket.Get(key) != nil
+}
 
+func markAsProcessed(bucket *bolt.Bucket, key []byte, article data.Article) error {
 	value, err := json.Marshal(article)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	err = bucket.Put(key, value)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }

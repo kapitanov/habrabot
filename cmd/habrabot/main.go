@@ -15,7 +15,6 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog/pkgerrors"
 )
 
 var (
@@ -94,7 +93,6 @@ func Main() {
 	flag.Parse()
 
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{
