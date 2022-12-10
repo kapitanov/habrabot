@@ -14,7 +14,7 @@ import (
 
 var bucketName = []byte("articles")
 
-func UseBoltDB(dbPath string, feed data.Feed) data.Feed {
+func UseBoltDB(feed data.Feed, dbPath string) data.Feed {
 	log.Printf("initialized boltdb storage file \"%s\"", dbPath)
 
 	storage := &boltDBStorage{

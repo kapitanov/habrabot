@@ -56,7 +56,7 @@ func (c configuration) CreateFeed() data.Feed {
 	feed = opengraph.Enrich(feed)
 
 	// Then it should be filtered by BoltDB database.
-	feed = storage.UseBoltDB(c.BoltDBPath, feed)
+	feed = storage.UseBoltDB(feed, c.BoltDBPath)
 
 	return feed
 }
