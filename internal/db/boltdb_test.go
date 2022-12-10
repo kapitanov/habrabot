@@ -1,4 +1,4 @@
-package storage
+package db
 
 import (
 	"os"
@@ -22,7 +22,7 @@ func TestUseBoltDB_Pass(t *testing.T) {
 
 	input := NewArticles("1", "2", "3")
 	feed := NewInMemoryFeed(input)
-	feed = UseBoltDB(feed, dbPath)
+	feed = Use(feed, dbPath)
 
 	output := Execute(t, feed)
 
@@ -47,7 +47,7 @@ func TestUseBoltDB_Block(t *testing.T) {
 	input := NewArticles("1", "2", "3")
 
 	feed := NewInMemoryFeed(append(input, input...))
-	feed = UseBoltDB(feed, dbPath)
+	feed = Use(feed, dbPath)
 
 	output := Execute(t, feed)
 

@@ -47,7 +47,9 @@ func RunFeed(
 	consumer Consumer,
 ) error {
 	feed := NewInMemoryFeed(input)
-	feed = pipeline(feed)
+	if pipeline != nil {
+		feed = pipeline(feed)
+	}
 	require.NotNil(t, feed)
 
 	return feed.Read(context.Background(), consumer)
@@ -66,4 +68,21 @@ func RunFeedInMemory(
 
 	err := RunFeed(t, input, pipeline, consumer)
 	return output, err
+}
+
+type InMemoryConsumer struct {
+	articles []Article
+}
+
+func NewInMemoryConsumer() *InMemoryConsumer {
+	return &InMemoryConsumer{}
+}
+
+func (c *InMemoryConsumer) Items() []Article {
+	return c.articles
+}
+
+func (c *InMemoryConsumer) On(_ context.Context, article Article) error {
+	c.articles = append(c.articles, article)
+	return nil
 }

@@ -3,17 +3,22 @@ package habrabot
 import (
 	"errors"
 	"flag"
-	"golang.org/x/net/context"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
+
+	"golang.org/x/net/context"
+
+	"github.com/kapitanov/habrabot/internal/carboncopy"
 
 	"github.com/rs/zerolog"
 
 	"github.com/kapitanov/habrabot/internal/data"
+	"github.com/kapitanov/habrabot/internal/db"
 	"github.com/kapitanov/habrabot/internal/opengraph"
 	"github.com/kapitanov/habrabot/internal/rss"
-	"github.com/kapitanov/habrabot/internal/storage"
 	"github.com/kapitanov/habrabot/internal/telegram"
 
 	"github.com/caarlos0/env"
@@ -30,11 +35,12 @@ func init() {
 }
 
 type configuration struct {
-	TelegramToken   string        `env:"TELEGRAM_TOKEN,required"`
-	TelegramChannel string        `env:"TELEGRAM_CHANNEL,required"`
-	RSSFeedURL      string        `env:"RSS_FEED,required"`
-	RSSFeedPeriod   time.Duration `env:"RSS_FEED_PERIOD" envDefault:"5m"`
-	BoltDBPath      string        `env:"BOLTDB_PATH,required"`
+	TelegramToken     string        `env:"TELEGRAM_TOKEN,required"`
+	TelegramChannel   string        `env:"TELEGRAM_CHANNEL,required"`
+	RSSFeedURL        string        `env:"RSS_FEED,required"`
+	RSSFeedPeriod     time.Duration `env:"RSS_FEED_PERIOD" envDefault:"5m"`
+	BoltDBPath        string        `env:"BOLTDB_PATH,required"`
+	CarbonCopyDirPath string        `env:"CC_PATH"`
 }
 
 func readConfig() (configuration, error) {
@@ -65,13 +71,19 @@ func (c configuration) CreateFeed() (data.Feed, error) {
 	feed = opengraph.Enrich(feed)
 
 	// Then it should be filtered by BoltDB database.
-	feed = storage.UseBoltDB(feed, c.BoltDBPath)
+	feed = db.Use(feed, c.BoltDBPath)
 
 	return feed, nil
 }
 
 func (c configuration) CreateConsumer() data.Consumer {
-	return telegram.New(c.TelegramToken, c.TelegramChannel)
+	consumer := telegram.New(c.TelegramToken, c.TelegramChannel)
+
+	if c.CarbonCopyDirPath != "" {
+		consumer = data.Tee(consumer, carboncopy.Use(c.CarbonCopyDirPath))
+	}
+
+	return consumer
 }
 
 func runOnce(ctx context.Context, feed data.Feed, consumer data.Consumer) error {
@@ -152,6 +164,11 @@ func run(feed data.Feed, consumer data.Consumer, config configuration) {
 			}
 		}
 	}()
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	<-signals
 
 	log.Info().Msg("shutting down")
 	close(syncTrigger)
