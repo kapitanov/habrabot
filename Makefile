@@ -4,7 +4,7 @@ GOTESTSUM_VERSION = v1.8.2
 LOCAL_PACKAGES = github.com/kapitanov/habrabot
 PROJECT_NAME = habrabot
 
-all: clean build test lint docker
+all: clean build test lint
 
 help:
 	@echo "Usage:"

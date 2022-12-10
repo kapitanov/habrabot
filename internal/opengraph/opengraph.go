@@ -39,6 +39,7 @@ func (t tags) Enrich(article *data.Article) {
 }
 
 func loadTags(sourceURL string) (tags, error) {
+	//nolint:gosec // Suppress "G107: Potential HTTP request made with variable url"
 	resp, err := http.Get(sourceURL)
 	if err != nil {
 		log.Printf("unable to download \"%s\": %v", sourceURL, err)

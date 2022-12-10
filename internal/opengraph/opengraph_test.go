@@ -1,3 +1,4 @@
+//nolint:goconst // it's OK for tests
 package opengraph
 
 import (

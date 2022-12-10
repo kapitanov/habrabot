@@ -25,15 +25,15 @@ func prepareMessage(article data.Article, chatID int64) (tgbotapi.Chattable, err
 	)
 
 	if article.ImageURL == nil {
-		text = trimLongText(text, maxMediaCaptionLength)
 		return createTextMessage(text, chatID), nil
 	}
 
-	text = trimLongText(text, maxTextLength)
 	return createTextAndImageMessage(text, *article.ImageURL, chatID)
 }
 
 func createTextMessage(text string, chatID int64) tgbotapi.Chattable {
+	text = trimLongText(text, maxTextLength)
+
 	msg := tgbotapi.NewMessageToChannel("", text)
 	msg.ChatID = chatID
 	msg.ParseMode = tgbotapi.ModeHTML
@@ -47,6 +47,8 @@ func createTextAndImageMessage(text, imageURL string, chatID int64) (tgbotapi.Ch
 	if err != nil {
 		return nil, err
 	}
+
+	text = trimLongText(text, maxMediaCaptionLength)
 
 	photo := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Bytes: bytes})
 	photo.Caption = text
@@ -74,8 +76,9 @@ func downloadImage(url string) ([]byte, error) {
 }
 
 func trimLongText(text string, max int) string {
+	const ellipsis = "..."
 	if len(text) > max {
-		text = text[0:max-3] + "..."
+		text = text[0:max-len(ellipsis)-1] + ellipsis
 	}
 	return text
 }
