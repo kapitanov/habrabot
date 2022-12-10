@@ -5,6 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/kapitanov/habrabot/internal/httpclient"
+
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog/log"
 
@@ -12,18 +16,30 @@ import (
 )
 
 type feed struct {
-	URL string
+	URL        string
+	HTTPClient *retryablehttp.Client
 }
 
 // New creates new RSS feed reader.
-func New(url string) data.Feed {
+func New(url string) (data.Feed, error) {
 	log.Info().Str("url", url).Msg("using rss feed")
-	return &feed{url}
+
+	httpClient, err := httpclient.New(httpclient.RSSPolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &feed{
+		URL:        url,
+		HTTPClient: httpClient,
+	}, nil
 }
 
 // Read method reads feed items and streams them into the consumer.
 func (r *feed) Read(consumer data.Consumer) error {
 	fp := gofeed.NewParser()
+	fp.Client = r.HTTPClient.HTTPClient
+
 	feed, err := fp.ParseURL(r.URL)
 	if err != nil {
 		log.Error().Err(err).Str("url", r.URL).Msg("unable to parse rss url")

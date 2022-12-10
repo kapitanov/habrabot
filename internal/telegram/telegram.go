@@ -2,14 +2,13 @@ package telegram
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
-	"os"
-
-	"github.com/kapitanov/habrabot/internal/data"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
+
+	"github.com/kapitanov/habrabot/internal/data"
+	"github.com/kapitanov/habrabot/internal/httpclient"
 )
 
 // New creates new consumed that publishes messages into Telegram channel.
@@ -27,30 +26,23 @@ func New(token, channelNameOrID string) data.Consumer {
 type transmitter struct {
 	token           string
 	channelNameOrID string
+	httpClient      *retryablehttp.Client
 	bot             *tgbotapi.BotAPI
 	chat            *tgbotapi.Chat
 }
 
 // On method is invoked when an article is received from the feed.
 func (t *transmitter) On(article data.Article) error {
-	if t.bot == nil {
-		bot, err := connectToTelegram(t.token)
-		if err != nil {
-			log.Error().Err(err).Msg("unable to connect to telegram")
-			return err
-		}
-
-		t.bot = bot
+	err := t.connectToTelegram()
+	if err != nil {
+		log.Error().Err(err).Msg("unable to connect to telegram")
+		return err
 	}
 
-	if t.chat == nil {
-		chat, err := selectChat(t.bot, t.channelNameOrID)
-		if err != nil {
-			log.Error().Err(err).Str("chat", t.channelNameOrID).Msg("unable to select chat")
-			return err
-		}
-
-		t.chat = chat
+	err = t.selectChat()
+	if err != nil {
+		log.Error().Err(err).Str("chat", t.channelNameOrID).Msg("unable to select chat")
+		return err
 	}
 
 	msg, err := prepareMessage(article, t.chat.ID)
@@ -78,29 +70,50 @@ func (t *transmitter) On(article data.Article) error {
 	return nil
 }
 
-func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
-	httpTransport := &http.Transport{}
-
-	proxyURLStr := os.Getenv("HTTP_PROXY")
-	if proxyURLStr == "" {
-		return tgbotapi.NewBotAPI(token)
-	} else {
-		proxyURL, err := url.Parse(proxyURLStr)
-		if err != nil {
-			return nil, err
-		}
-
-		httpTransport.Proxy = http.ProxyURL(proxyURL)
-
-		log.Info().
-			Str("proxy", fmt.Sprintf("%s://%s", proxyURL.Scheme, proxyURL.Host)).
-			Msg("will use proxy server for telegram")
+func (t *transmitter) createHTTPClient() error {
+	if t.httpClient != nil {
+		return nil
 	}
 
-	httpClient := &http.Client{
-		Transport: httpTransport,
+	httpClient, err := createHTTPClient()
+	if err != nil {
+		return err
 	}
-	bot, err := tgbotapi.NewBotAPIWithClient(token, httpClient)
+
+	t.httpClient = httpClient
+	return nil
+}
+
+func createHTTPClient() (*retryablehttp.Client, error) {
+	httpClient, err := httpclient.New(httpclient.TelegramPolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	return httpClient, nil
+}
+
+func (t *transmitter) connectToTelegram() error {
+	if t.bot != nil {
+		return nil
+	}
+
+	err := t.createHTTPClient()
+	if err != nil {
+		return err
+	}
+
+	bot, err := connectToTelegram(t.httpClient, t.token)
+	if err != nil {
+		return err
+	}
+
+	t.bot = bot
+	return nil
+}
+
+func connectToTelegram(httpClient *retryablehttp.Client, token string) (*tgbotapi.BotAPI, error) {
+	bot, err := tgbotapi.NewBotAPIWithClient(token, httpClient.StandardClient())
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +127,19 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 		Str("me", fmt.Sprintf("@%v", me.UserName)).
 		Msg("connected to telegram")
 	return bot, nil
+}
+
+func (t *transmitter) selectChat() error {
+	if t.chat == nil {
+		chat, err := selectChat(t.bot, t.channelNameOrID)
+		if err != nil {
+			log.Error().Err(err).Str("chat", t.channelNameOrID).Msg("unable to select chat")
+			return err
+		}
+
+		t.chat = chat
+	}
+	return nil
 }
 
 func selectChat(bot *tgbotapi.BotAPI, channelNameOrID string) (*tgbotapi.Chat, error) {

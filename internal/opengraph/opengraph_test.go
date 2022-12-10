@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-retryablehttp"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
@@ -173,7 +175,7 @@ func TestLoadTags_OK(t *testing.T) {
 	defer server.Close()
 
 	sourceURL := server.URL
-	output, err := loadTags(sourceURL)
+	output, err := loadTags(sourceURL, retryablehttp.NewClient())
 
 	if assert.NoError(t, err) {
 		if assert.NotNil(t, output.Title, "Title") {
@@ -213,7 +215,7 @@ func testLoadTagsNonSuccessfulResponseImpl(t *testing.T, status int) {
 	defer server.Close()
 
 	sourceURL := server.URL
-	_, err := loadTags(sourceURL)
+	_, err := loadTags(sourceURL, retryablehttp.NewClient())
 
 	assert.Error(t, err)
 }
@@ -252,7 +254,7 @@ func TestLoadTags_Redirect(t *testing.T) {
 	defer redirectServer.Close()
 
 	sourceURL := redirectServer.URL
-	output, err := loadTags(sourceURL)
+	output, err := loadTags(sourceURL, retryablehttp.NewClient())
 
 	if assert.NoError(t, err) {
 		if assert.NotNil(t, output.Title, "Title") {

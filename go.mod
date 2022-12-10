@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/joho/godotenv v1.4.0
 	github.com/rs/zerolog v1.28.0
 	golang.org/x/exp v0.0.0-20221208152030-732eee02a75a
@@ -22,7 +23,8 @@ require (
 
 require (
 	github.com/andybalholm/cascadia v1.0.0 // indirect
-	github.com/davecgh/go-spew v1.1.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

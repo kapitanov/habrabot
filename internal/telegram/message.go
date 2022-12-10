@@ -95,6 +95,6 @@ func trimLongText(text string, max int) string {
 }
 
 func sanitizeText(text string) string {
-	text = strings.ReplaceAll(text, "\u00A0", " ")
+	text = strings.ReplaceAll(text, "\u00a0", " ")
 	return text
 }

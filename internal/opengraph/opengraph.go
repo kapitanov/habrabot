@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/kapitanov/habrabot/internal/httpclient"
+
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/html"
 
@@ -12,9 +16,19 @@ import (
 
 // Enrich adds opengraph data into the stream of articles.
 func Enrich(feed data.Feed) data.Feed {
+	var httpClient *retryablehttp.Client
+
 	return data.Transform(feed, data.TransformationFunc(func(article *data.Article) error {
+		if httpClient == nil {
+			var err error
+			httpClient, err = httpclient.New(httpclient.OpengraphPolicy)
+			if err != nil {
+				return err
+			}
+		}
+
 		// Load web page and try parse OpenGraph tags
-		t, err := loadTags(article.LinkURL)
+		t, err := loadTags(article.LinkURL, httpClient)
 		if err == nil {
 			// Errors are ignored here
 			t.Enrich(article)
@@ -38,9 +52,8 @@ func (t tags) Enrich(article *data.Article) {
 	}
 }
 
-func loadTags(sourceURL string) (tags, error) {
-	//nolint:gosec // Suppress "G107: Potential HTTP request made with variable url"
-	resp, err := http.Get(sourceURL)
+func loadTags(sourceURL string, httpClient *retryablehttp.Client) (tags, error) {
+	resp, err := httpClient.Get(sourceURL)
 	if err != nil {
 		log.Warn().Err(err).Str("url", sourceURL).Msg("unable to download web page")
 		return tags{}, err

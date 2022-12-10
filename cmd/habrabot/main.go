@@ -51,9 +51,12 @@ func readConfig() (configuration, error) {
 	return cfg, nil
 }
 
-func (c configuration) CreateFeed() data.Feed {
+func (c configuration) CreateFeed() (data.Feed, error) {
 	// RSS feed is a root feed.
-	feed := rss.New(c.RSSFeedURL)
+	feed, err := rss.New(c.RSSFeedURL)
+	if err != nil {
+		return nil, err
+	}
 
 	// Then it should be wrapped into opengraph enricher.
 	feed = opengraph.Enrich(feed)
@@ -61,7 +64,7 @@ func (c configuration) CreateFeed() data.Feed {
 	// Then it should be filtered by BoltDB database.
 	feed = storage.UseBoltDB(feed, c.BoltDBPath)
 
-	return feed
+	return feed, nil
 }
 
 func (c configuration) CreateConsumer() data.Consumer {
@@ -106,7 +109,11 @@ func Main() {
 		log.Fatal().Err(err).Msg("unable to load configuration")
 	}
 
-	feed := config.CreateFeed()
+	feed, err := config.CreateFeed()
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to create feed")
+	}
+
 	consumer := config.CreateConsumer()
 
 	// TODO graceful shutdown
