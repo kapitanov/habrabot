@@ -22,6 +22,7 @@ var (
 	TelegramPolicy  policy = telegramPolicy{}
 	RSSPolicy       policy = rssPolicy{}
 	OpengraphPolicy policy = opengraphPolicy{}
+	CCPolicy        policy = ccPolicy{}
 )
 
 // New creates new HTTP client with proper resilience policy.
@@ -132,4 +133,17 @@ func (_ opengraphPolicy) ConfigureHTTP(client *retryablehttp.Client) {
 
 func (_ opengraphPolicy) CreateLogger() zerolog.Logger {
 	return log.Logger.With().Str("component", "opengraph").Logger()
+}
+
+type ccPolicy struct{}
+
+func (_ ccPolicy) ConfigureHTTP(client *retryablehttp.Client) {
+	client.Backoff = retryablehttp.LinearJitterBackoff
+	client.RetryMax = 10
+	client.RetryWaitMin = time.Second
+	client.RetryWaitMin = 30 * time.Second
+}
+
+func (_ ccPolicy) CreateLogger() zerolog.Logger {
+	return log.Logger.With().Str("component", "carboncopy").Logger()
 }

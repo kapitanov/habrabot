@@ -34,6 +34,13 @@ Here:
 
 See `example.env` for more details.
 
+> If you want to save a copy of each RSS feed item into a locac directory,
+> add the following variable:
+> 
+> ```shell
+> CC_PATH=/data/cc/
+> ```
+
 Now, you may create a `docker-compose.yaml` file that will instruct Docker how to run the bot:
 
 ```yaml

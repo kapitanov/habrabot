@@ -1,4 +1,4 @@
-package storage
+package db
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 
 var bucketName = []byte("articles")
 
-func UseBoltDB(feed data.Feed, dbPath string) data.Feed {
-	log.Info().Str("path", dbPath).Msg("using boltdb storage")
+func Use(feed data.Feed, dbPath string) data.Feed {
+	log.Info().Str("path", dbPath).Msg("using boltdb db")
 
 	storage := &boltDBStorage{
 		dbPath: dbPath,

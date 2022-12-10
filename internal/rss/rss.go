@@ -53,7 +53,7 @@ func (r *feed) Read(ctx context.Context, consumer data.Consumer) error {
 			return context.Canceled
 		}
 
-		article, err := parseArticleFromRss(item)
+		article, err := parseArticleFromRSS(item)
 		if err != nil {
 			log.Error().Err(err).Str("url", r.URL).Msg("unable to item from rss feed")
 			return err
@@ -77,7 +77,7 @@ func (r *feed) Read(ctx context.Context, consumer data.Consumer) error {
 	return nil
 }
 
-func parseArticleFromRss(item *gofeed.Item) (data.Article, error) {
+func parseArticleFromRSS(item *gofeed.Item) (data.Article, error) {
 	description, err := normalizeHTML(item.Description)
 	if err != nil {
 		return data.Article{}, err
