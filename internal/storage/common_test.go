@@ -1,9 +1,11 @@
 package storage
 
 import (
-	"github.com/kapitanov/habrabot/internal/data"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/kapitanov/habrabot/internal/data"
 )
 
 func NewArticle(id string) data.Article {

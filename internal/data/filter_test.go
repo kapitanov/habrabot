@@ -2,8 +2,9 @@ package data
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFilter_Block(t *testing.T) {

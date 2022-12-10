@@ -2,9 +2,10 @@ package habrabot
 
 import (
 	"flag"
-	"github.com/rs/zerolog"
 	"os"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/kapitanov/habrabot/internal/data"
 	"github.com/kapitanov/habrabot/internal/opengraph"

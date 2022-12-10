@@ -119,6 +119,9 @@ func processMetaTag(node *html.Node, t *tags) {
 		t.Title = &value
 	case "og:image":
 		t.ImageURL = &value
+	case "og:description":
+
+		_ = value
 	}
 }
 

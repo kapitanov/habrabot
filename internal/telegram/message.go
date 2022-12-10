@@ -5,8 +5,10 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"golang.org/x/exp/utf8string"
 
 	"github.com/kapitanov/habrabot/internal/data"
 )
@@ -14,7 +16,11 @@ import (
 const (
 	maxTextLength         = 4096 - 4
 	maxMediaCaptionLength = 1024 - 32
+
+	ellipsis = "\u2026"
 )
+
+var ellipsisUTF8 = utf8string.NewString(ellipsis)
 
 func prepareMessage(article data.Article, chatID int64) (tgbotapi.Chattable, error) {
 	text := fmt.Sprintf(
@@ -23,6 +29,8 @@ func prepareMessage(article data.Article, chatID int64) (tgbotapi.Chattable, err
 		article.Title,
 		article.Description,
 	)
+
+	text = sanitizeText(text)
 
 	if article.ImageURL == nil {
 		return createTextMessage(text, chatID), nil
@@ -76,9 +84,17 @@ func downloadImage(url string) ([]byte, error) {
 }
 
 func trimLongText(text string, max int) string {
-	const ellipsis = "..."
-	if len(text) > max {
-		text = text[0:max-len(ellipsis)-1] + ellipsis
+	uText := utf8string.NewString(text)
+	if uText.RuneCount() > max {
+		rem := max - ellipsisUTF8.RuneCount()
+		text = uText.Slice(0, rem)
+		text += ellipsis
 	}
+
+	return text
+}
+
+func sanitizeText(text string) string {
+	text = strings.ReplaceAll(text, "\u00A0", " ")
 	return text
 }

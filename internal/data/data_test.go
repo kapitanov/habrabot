@@ -1,8 +1,9 @@
 package data
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func NewArticle(id string) Article {

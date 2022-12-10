@@ -3,15 +3,18 @@ package telegram
 
 import (
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/utf8string"
 )
 
 func TestTrimLongText(t *testing.T) {
-	const maxLength = 1024
+	const maxLength = 20
 
 	strLengths := []int{
 		maxLength / 2,
@@ -26,19 +29,23 @@ func TestTrimLongText(t *testing.T) {
 
 		t.Run(fmt.Sprintf("LEN=%v", strLength), func(t *testing.T) {
 			str := ""
-			for len(str) < strLength {
-				str += "lorem "
+			for unicodeLen(str) < strLength {
+				str += "lorem ⌘ фыщъ "
 			}
 
-			input := str[0:strLength]
+			input := unicodeSlice(str, 0, strLength)
 			output := trimLongText(input, maxLength)
-			assert.Truef(
-				t,
-				len(output) <= maxLength,
-				"expected len(output) = %v <- %v",
-				len(output),
-				maxLength,
-			)
+
+			t.Logf("input:  %d chars, %q", unicodeLen(input), input)
+			t.Logf("output: %d chars, %q", unicodeLen(output), output)
+
+			assert.True(t, unicodeLen(output) <= maxLength)
+
+			if unicodeLen(input) <= maxLength {
+				assert.Equal(t, input, output)
+			} else {
+				assert.True(t, strings.HasSuffix(output, ellipsis))
+			}
 		})
 	}
 }
@@ -49,7 +56,7 @@ func TestCreateTextMessage_NoTrim(t *testing.T) {
 		str += "lorem "
 	}
 
-	str = str[0:(maxTextLength - 10)]
+	str = unicodeSlice(str, 0, maxTextLength-10)
 	chatID := int64(1024)
 	chattable := createTextMessage(str, chatID)
 
@@ -93,7 +100,7 @@ func TestCreateTextMessage_Trim(t *testing.T) {
 				str += "lorem "
 			}
 
-			str = str[0:strLength]
+			str = unicodeSlice(str, 0, strLength)
 			chatID := int64(1024)
 			chattable := createTextMessage(str, chatID)
 
@@ -103,7 +110,7 @@ func TestCreateTextMessage_Trim(t *testing.T) {
 
 					assert.Truef(
 						t,
-						len(msg.Text) <= maxTextLength,
+						unicodeLen(msg.Text) <= maxTextLength,
 						"expected len(msg.Text) = %v <= %v",
 						len(msg.Text),
 						maxTextLength,
@@ -133,7 +140,7 @@ func TestCreateTextAndImageMessage_NoTrim(t *testing.T) {
 		str += "lorem "
 	}
 
-	str = str[0:(maxMediaCaptionLength - 10)]
+	str = unicodeSlice(str, 0, maxMediaCaptionLength-10)
 	chatID := int64(1024)
 	chattable, err := createTextAndImageMessage(str, server.URL, chatID)
 	assert.NoError(t, err)
@@ -144,7 +151,7 @@ func TestCreateTextAndImageMessage_NoTrim(t *testing.T) {
 
 			assert.Truef(
 				t,
-				len(msg.Caption) <= maxMediaCaptionLength,
+				unicodeLen(msg.Caption) <= maxMediaCaptionLength,
 				"expected len(msg.Text) = %v <= %v",
 				len(msg.Caption),
 				maxMediaCaptionLength,
@@ -182,7 +189,7 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 				str += "lorem "
 			}
 
-			str = str[0:strLength]
+			str = unicodeSlice(str, 0, strLength)
 			chatID := int64(1024)
 			chattable, err := createTextAndImageMessage(str, server.URL, chatID)
 			assert.NoError(t, err)
@@ -193,7 +200,7 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 
 					assert.Truef(
 						t,
-						len(msg.Caption) <= maxMediaCaptionLength,
+						unicodeLen(msg.Caption) <= maxMediaCaptionLength,
 						"expected len(msg.Text) = %v <= %v",
 						len(msg.Caption),
 						maxMediaCaptionLength,
@@ -209,4 +216,21 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSanitizeText_ReplaceNBSPs(t *testing.T) {
+	input := "foo\u00A0bar"
+	expected := "foo bar"
+
+	actual := sanitizeText(input)
+
+	assert.Equal(t, expected, actual)
+}
+
+func unicodeSlice(s string, i, j int) string {
+	return utf8string.NewString(s).Slice(i, j)
+}
+
+func unicodeLen(s string) int {
+	return utf8string.NewString(s).RuneCount()
 }
