@@ -2,11 +2,11 @@ package storage
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/kapitanov/habrabot/internal/data"
@@ -15,11 +15,13 @@ import (
 var bucketName = []byte("articles")
 
 func UseBoltDB(feed data.Feed, dbPath string) data.Feed {
-	log.Printf("initialized boltdb storage file \"%s\"", dbPath)
+	log.Info().Str("path", dbPath).Msg("using boltdb storage")
 
 	storage := &boltDBStorage{
 		dbPath: dbPath,
 	}
+
+	// TODO turn into middleware
 
 	return data.Filter(feed, storage)
 }
@@ -31,7 +33,7 @@ type boltDBStorage struct {
 // Filter returns true if an article passes through the filter, and false otherwise.
 func (s *boltDBStorage) Filter(article data.Article) (bool, error) {
 	var isVisible bool
-	err := openDB(s.dbPath, func(tx *bolt.Tx) error {
+	err := executeTX(s.dbPath, func(tx *bolt.Tx) error {
 		bucket, e := ensureBucket(tx)
 		if e != nil {
 			return e
@@ -39,6 +41,7 @@ func (s *boltDBStorage) Filter(article data.Article) (bool, error) {
 
 		isVisible, e = doFilter(bucket, article)
 		if e != nil {
+			log.Error().Err(e).Msg("unable to apply filter")
 			return e
 		}
 
@@ -47,19 +50,10 @@ func (s *boltDBStorage) Filter(article data.Article) (bool, error) {
 	return isVisible, err
 }
 
-func openDB(dbPath string, fn func(tx *bolt.Tx) error) error {
-	dbPath, err := filepath.Abs(dbPath)
+func executeTX(dbPath string, fn func(tx *bolt.Tx) error) error {
+	db, err := openDB(dbPath)
 	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(filepath.Dir(dbPath), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	db, err := bolt.Open(dbPath, os.ModePerm, nil)
-	if err != nil {
+		log.Error().Err(err).Str("path", dbPath).Msg("unable to open db file")
 		return err
 	}
 
@@ -77,12 +71,32 @@ func openDB(dbPath string, fn func(tx *bolt.Tx) error) error {
 	return nil
 }
 
+func openDB(dbPath string) (*bolt.DB, error) {
+	dbPath, err := filepath.Abs(dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.MkdirAll(filepath.Dir(dbPath), os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := bolt.Open(dbPath, os.ModePerm, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
 func ensureBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bucket := tx.Bucket(bucketName)
 	if bucket == nil {
 		var err error
 		bucket, err = tx.CreateBucket(bucketName)
 		if err != nil {
+			log.Error().Err(err).Str("bucket", string(bucketName)).Msg("unable to create bucket")
 			return nil, err
 		}
 	}

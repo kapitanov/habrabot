@@ -2,7 +2,8 @@ package habrabot
 
 import (
 	"flag"
-	"log"
+	"github.com/rs/zerolog"
+	"os"
 	"time"
 
 	"github.com/kapitanov/habrabot/internal/data"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var (
@@ -80,8 +83,7 @@ func sync(feed data.Feed, consumer data.Consumer) error {
 	}
 
 	if newArticleCount > 0 {
-		log.Printf("sync completed, %d new article(s) were found", newArticleCount)
-		log.Println("------------------")
+		log.Info().Int("new", newArticleCount).Msg("sync completed")
 	}
 
 	return nil
@@ -91,18 +93,28 @@ func sync(feed data.Feed, consumer data.Consumer) error {
 func Main() {
 	flag.Parse()
 
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out: os.Stderr,
+	})
+	log.Logger = log.Logger.With().Timestamp().Logger()
+
 	config, err := readConfig()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("unable to load configuration")
 	}
 
 	feed := config.CreateFeed()
 	consumer := config.CreateConsumer()
 
+	// TODO graceful shutdown
 	for {
 		err = sync(feed, consumer)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("unable to run sync routine")
 		}
 
 		time.Sleep(config.RSSFeedPeriod)

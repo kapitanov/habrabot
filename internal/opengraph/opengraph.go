@@ -2,9 +2,9 @@ package opengraph
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/rs/zerolog/log"
 	"golang.org/x/net/html"
 
 	"github.com/kapitanov/habrabot/internal/data"
@@ -42,12 +42,15 @@ func loadTags(sourceURL string) (tags, error) {
 	//nolint:gosec // Suppress "G107: Potential HTTP request made with variable url"
 	resp, err := http.Get(sourceURL)
 	if err != nil {
-		log.Printf("unable to download \"%s\": %v", sourceURL, err)
+		log.Warn().Err(err).Str("url", sourceURL).Msg("unable to download web page")
 		return tags{}, err
 	}
 
 	if resp.StatusCode >= http.StatusMultipleChoices {
-		log.Printf("unable to download \"%s\": %v", sourceURL, resp.Status)
+		log.Warn().Err(err).
+			Str("url", sourceURL).
+			Int("status", resp.StatusCode).
+			Msg("unable to download web page")
 		return tags{}, fmt.Errorf("unable to download \"%s\": %v", sourceURL, resp.Status)
 	}
 
@@ -57,7 +60,7 @@ func loadTags(sourceURL string) (tags, error) {
 
 	root, err := html.Parse(resp.Body)
 	if err != nil {
-		log.Printf("unable to parse \"%s\": %v", sourceURL, err)
+		log.Warn().Err(err).Str("url", sourceURL).Msg("unable to parse web page")
 		return tags{}, err
 	}
 

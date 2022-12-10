@@ -1,12 +1,12 @@
 package rss
 
 import (
-	"log"
 	"net/url"
 	"sort"
 	"strings"
 
 	"github.com/mmcdole/gofeed"
+	"github.com/rs/zerolog/log"
 
 	"github.com/kapitanov/habrabot/internal/data"
 )
@@ -17,7 +17,7 @@ type feed struct {
 
 // New creates new RSS feed reader.
 func New(url string) data.Feed {
-	log.Printf("will read news from rss feed \"%s\"", url)
+	log.Info().Str("url", url).Msg("using rss feed")
 	return &feed{url}
 }
 
@@ -26,6 +26,7 @@ func (r *feed) Read(consumer data.Consumer) error {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(r.URL)
 	if err != nil {
+		log.Error().Err(err).Str("url", r.URL).Msg("unable to parse rss url")
 		return err
 	}
 
@@ -33,6 +34,7 @@ func (r *feed) Read(consumer data.Consumer) error {
 	for _, item := range feed.Items {
 		article, err := parseArticleFromRss(item)
 		if err != nil {
+			log.Error().Err(err).Str("url", r.URL).Msg("unable to item from rss feed")
 			return err
 		}
 

@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -9,6 +9,7 @@ import (
 	"github.com/kapitanov/habrabot/internal/data"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/rs/zerolog/log"
 )
 
 // New creates new consumed that publishes messages into Telegram channel.
@@ -35,6 +36,7 @@ func (t *transmitter) On(article data.Article) error {
 	if t.bot == nil {
 		bot, err := connectToTelegram(t.token)
 		if err != nil {
+			log.Error().Err(err).Msg("unable to connect to telegram")
 			return err
 		}
 
@@ -44,6 +46,7 @@ func (t *transmitter) On(article data.Article) error {
 	if t.chat == nil {
 		chat, err := selectChat(t.bot, t.channelNameOrID)
 		if err != nil {
+			log.Error().Err(err).Str("chat", t.channelNameOrID).Msg("unable to select chat")
 			return err
 		}
 
@@ -52,15 +55,20 @@ func (t *transmitter) On(article data.Article) error {
 
 	msg, err := prepareMessage(article, t.chat.ID)
 	if err != nil {
+		log.Error().Err(err).Msg("unable to prepare telegram message")
 		return err
 	}
 
 	result, err := t.bot.Send(msg)
 	if err != nil {
+		log.Error().Err(err).Msg("unable to send to telegram")
 		return err
 	}
 
-	log.Printf("posted new message #%d to telegram channel @%s", result.MessageID, t.chat.UserName)
+	log.Info().
+		Int("msg", result.MessageID).
+		Str("channel", fmt.Sprintf("@%v", t.chat.UserName)).
+		Msg("posted a telegram message")
 	return nil
 }
 
@@ -78,7 +86,9 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 
 		httpTransport.Proxy = http.ProxyURL(proxyURL)
 
-		log.Printf("will use proxy server \"%s://%s\" to connect to telegram", proxyURL.Scheme, proxyURL.Host)
+		log.Info().
+			Str("proxy", fmt.Sprintf("%s://%s", proxyURL.Scheme, proxyURL.Host)).
+			Msg("will use proxy server for telegram")
 	}
 
 	httpClient := &http.Client{
@@ -93,7 +103,10 @@ func connectToTelegram(token string) (*tgbotapi.BotAPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("connected to telegram as @%s", me.UserName)
+
+	log.Info().
+		Str("me", fmt.Sprintf("@%v", me.UserName)).
+		Msg("connected to telegram")
 	return bot, nil
 }
 
@@ -103,6 +116,9 @@ func selectChat(bot *tgbotapi.BotAPI, channelNameOrID string) (*tgbotapi.Chat, e
 		return nil, err
 	}
 
-	log.Printf("will post messages to telegram channel @%s (%d)", chat.UserName, chat.ID)
+	log.Info().
+		Str("channel", fmt.Sprintf("@%v", chat.UserName)).
+		Int64("id", chat.ID).
+		Msg("will post messages to telegram channel")
 	return &chat, nil
 }
