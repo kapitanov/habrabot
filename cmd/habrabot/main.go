@@ -115,7 +115,8 @@ func Main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out: os.Stderr,
+		Out:        os.Stderr,
+		TimeFormat: time.RFC3339,
 	})
 	log.Logger = log.Logger.With().Timestamp().Logger()
 
