@@ -10,9 +10,74 @@ import (
 	"testing"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/kapitanov/habrabot/internal/data"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/utf8string"
 )
+
+func TestFormatMessageText(t *testing.T) {
+	const href = "https://google.com"
+
+	// <a href="https://google.com"><strong>TITLE</strong></a>NNTEXT
+	// 1234567890123456789012345678901234567890123456789012345678901234567890
+	//           111111111222222222233333333334444444444555555555566666666
+	// 61
+
+	testCases := []struct {
+		Name      string
+		Title     string
+		Text      string
+		MaxLength int
+		Expected  string
+	}{
+		{
+			Name:      "NoTrim",
+			Title:     "TITLE OF THE MESSAGE",
+			Text:      "TEXT OF THE MESSAGE",
+			MaxLength: 1000,
+			Expected:  "<a href=\"https://google.com\"><strong>TITLE OF THE MESSAGE</strong></a>\n\nTEXT OF THE MESSAGE",
+		},
+		{
+			Name:      "TrimText",
+			Title:     "TITLE OF THE MESSAGE",
+			Text:      "TEXT OF THE MESSAGE",
+			MaxLength: 85,
+			Expected:  "<a href=\"https://google.com\"><strong>TITLE OF THE MESSAGE</strong></a>\n\nTEXT OF THE \u2026",
+		},
+		{
+			Name:      "TitleOnly",
+			Title:     "TITLE OF THE MESSAGE",
+			Text:      "TEXT OF THE MESSAGE",
+			MaxLength: 72,
+			Expected:  "<a href=\"https://google.com\"><strong>TITLE OF THE MESSAGE</strong></a>",
+		},
+		{
+			Name:      "TrimTitle",
+			Title:     "TITLE OF THE MESSAGE",
+			Text:      "TEXT OF THE MESSAGE",
+			MaxLength: 60,
+			Expected:  "<a href=\"https://google.com\"><strong>TITLE OF \u2026</strong></a>",
+		},
+		{
+			Name:      "HrefOnly",
+			Title:     "TITLE OF THE MESSAGE",
+			Text:      "TEXT OF THE MESSAGE",
+			MaxLength: 30,
+			Expected:  "https://google.com",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.Name, func(t *testing.T) {
+			actual := formatMessageText(tc.Title, tc.Text, href, tc.MaxLength)
+			t.Logf("Output: %q", actual)
+			t.Logf("%d runes", unicodeLength(actual))
+			assert.Equal(t, tc.Expected, actual)
+		})
+	}
+}
 
 func TestTrimLongText(t *testing.T) {
 	const maxLength = 20
@@ -52,14 +117,19 @@ func TestTrimLongText(t *testing.T) {
 }
 
 func TestCreateTextMessage_NoTrim(t *testing.T) {
-	str := ""
-	for len(str) < maxTextLength {
-		str += "lorem "
+	article := data.Article{
+		Title:       "TITLE",
+		Description: "",
+		LinkURL:     "https://google.com",
 	}
 
-	str = unicodeSlice(str, 0, maxTextLength-10)
+	for unicodeLength(article.Description) < maxTextLength {
+		article.Description += "lorem "
+	}
+
+	article.Description = unicodeSlice(article.Description, 0, maxTextLength-10)
 	chatID := int64(1024)
-	chattable := createTextMessage(str, chatID)
+	chattable := createTextMessage(article, chatID)
 
 	if assert.NotNil(t, chattable) {
 		if assert.IsType(t, tgbotapi.MessageConfig{}, chattable) {
@@ -67,13 +137,12 @@ func TestCreateTextMessage_NoTrim(t *testing.T) {
 
 			assert.Truef(
 				t,
-				len(msg.Text) <= maxTextLength,
+				unicodeLength(msg.Text) <= maxTextLength,
 				"expected len(msg.Text) = %v <- %v",
-				len(msg.Text),
+				unicodeLength(msg.Text),
 				maxTextLength,
 			)
 
-			assert.Equal(t, str, msg.Text)
 			assert.Equal(t, tgbotapi.ModeHTML, msg.ParseMode)
 			assert.True(t, msg.DisableWebPagePreview)
 			assert.Equal(t, chatID, msg.ChatID)
@@ -96,14 +165,19 @@ func TestCreateTextMessage_Trim(t *testing.T) {
 		strLength := strLength
 
 		t.Run(fmt.Sprintf("LEN=%v", strLength), func(t *testing.T) {
-			str := ""
-			for len(str) < strLength {
-				str += "lorem "
+			article := data.Article{
+				Title:       "TITLE",
+				Description: "",
+				LinkURL:     "https://google.com",
 			}
 
-			str = unicodeSlice(str, 0, strLength)
+			for unicodeLength(article.Description) < strLength {
+				article.Description += "lorem "
+			}
+
+			article.Description = unicodeSlice(article.Description, 0, strLength)
 			chatID := int64(1024)
-			chattable := createTextMessage(str, chatID)
+			chattable := createTextMessage(article, chatID)
 
 			if assert.NotNil(t, chattable) {
 				if assert.IsType(t, tgbotapi.MessageConfig{}, chattable) {
@@ -113,7 +187,7 @@ func TestCreateTextMessage_Trim(t *testing.T) {
 						t,
 						unicodeLen(msg.Text) <= maxTextLength,
 						"expected len(msg.Text) = %v <= %v",
-						len(msg.Text),
+						unicodeLength(msg.Text),
 						maxTextLength,
 					)
 
@@ -136,14 +210,19 @@ func TestCreateTextAndImageMessage_NoTrim(t *testing.T) {
 	}))
 	defer server.Close()
 
-	str := ""
-	for len(str) < maxMediaCaptionLength {
-		str += "lorem "
+	article := data.Article{
+		Title:       "TITLE",
+		Description: "",
+		LinkURL:     "https://google.com",
+		ImageURL:    &server.URL,
+	}
+	for len(article.Description) < maxMediaCaptionLength {
+		article.Description += "lorem "
 	}
 
-	str = unicodeSlice(str, 0, maxMediaCaptionLength-10)
+	article.Description = unicodeSlice(article.Description, 0, maxMediaCaptionLength-10)
 	chatID := int64(1024)
-	chattable, err := createTextAndImageMessage(context.Background(), str, server.URL, chatID, http.DefaultClient)
+	chattable, err := createTextAndImageMessage(context.Background(), article, chatID, http.DefaultClient)
 	assert.NoError(t, err)
 
 	if assert.NotNil(t, chattable) {
@@ -154,11 +233,10 @@ func TestCreateTextAndImageMessage_NoTrim(t *testing.T) {
 				t,
 				unicodeLen(msg.Caption) <= maxMediaCaptionLength,
 				"expected len(msg.Text) = %v <= %v",
-				len(msg.Caption),
+				unicodeLength(msg.Caption),
 				maxMediaCaptionLength,
 			)
 
-			assert.Equal(t, str, msg.Caption)
 			assert.Equal(t, tgbotapi.ModeHTML, msg.ParseMode)
 			assert.Equal(t, chatID, msg.ChatID)
 			assert.Equal(t, "", msg.ChannelUsername)
@@ -185,14 +263,19 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 		strLength := strLength
 
 		t.Run(fmt.Sprintf("LEN=%v", strLength), func(t *testing.T) {
-			str := ""
-			for len(str) < strLength {
-				str += "lorem "
+			article := data.Article{
+				Title:       "TITLE",
+				Description: "",
+				LinkURL:     "https://google.com",
+				ImageURL:    &server.URL,
+			}
+			for unicodeLength(article.Description) < strLength {
+				article.Description += "lorem "
 			}
 
-			str = unicodeSlice(str, 0, strLength)
+			article.Description = unicodeSlice(article.Description, 0, strLength)
 			chatID := int64(1024)
-			chattable, err := createTextAndImageMessage(context.Background(), str, server.URL, chatID, http.DefaultClient)
+			chattable, err := createTextAndImageMessage(context.Background(), article, chatID, http.DefaultClient)
 			assert.NoError(t, err)
 
 			if assert.NotNil(t, chattable) {
@@ -203,7 +286,7 @@ func TestCreateTextAndImageMessage_Trim(t *testing.T) {
 						t,
 						unicodeLen(msg.Caption) <= maxMediaCaptionLength,
 						"expected len(msg.Text) = %v <= %v",
-						len(msg.Caption),
+						unicodeLength(msg.Caption),
 						maxMediaCaptionLength,
 					)
 

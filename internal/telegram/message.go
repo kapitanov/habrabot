@@ -39,14 +39,14 @@ func prepareMessage(
 	text = sanitizeText(text)
 
 	if article.ImageURL == nil {
-		return createTextMessage(text, chatID), nil
+		return createTextMessage(article, chatID), nil
 	}
 
-	return createTextAndImageMessage(ctx, text, *article.ImageURL, chatID, httpClient)
+	return createTextAndImageMessage(ctx, article, chatID, httpClient)
 }
 
-func createTextMessage(text string, chatID int64) tgbotapi.Chattable {
-	text = trimLongText(text, maxTextLength)
+func createTextMessage(article data.Article, chatID int64) tgbotapi.Chattable {
+	text := formatMessageText(article.Title, article.Description, article.LinkURL, maxTextLength)
 
 	msg := tgbotapi.NewMessageToChannel("", text)
 	msg.ChatID = chatID
@@ -58,16 +58,16 @@ func createTextMessage(text string, chatID int64) tgbotapi.Chattable {
 
 func createTextAndImageMessage(
 	ctx context.Context,
-	text, imageURL string,
+	article data.Article,
 	chatID int64,
 	httpClient *http.Client,
 ) (tgbotapi.Chattable, error) {
-	bytes, err := downloadImage(ctx, imageURL, httpClient)
+	bytes, err := downloadImage(ctx, *article.ImageURL, httpClient)
 	if err != nil {
 		return nil, err
 	}
 
-	text = trimLongText(text, maxMediaCaptionLength)
+	text := formatMessageText(article.Title, article.Description, article.LinkURL, maxMediaCaptionLength)
 
 	photo := tgbotapi.NewPhotoUpload(chatID, tgbotapi.FileBytes{Bytes: bytes})
 	photo.Caption = text
@@ -101,6 +101,44 @@ func downloadImage(
 	}
 
 	return bytes, nil
+}
+
+func formatMessageText(title, text, href string, maxLength int) string {
+	const titleTextSeparator = "\n\n"
+
+	title = sanitizeText(title)
+
+	formattedTitle := fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>", html.EscapeString(href), title)
+
+	if unicodeLength(formattedTitle) > maxLength {
+		maxTitleLength := maxLength - unicodeLength(
+			fmt.Sprintf("<a href=\"%s\"><strong></strong></a>", html.EscapeString(href)),
+		)
+
+		if maxTitleLength <= 0 {
+			return href
+		}
+
+		title = trimLongText(title, maxTitleLength)
+		formattedTitle = fmt.Sprintf("<a href=\"%s\"><strong>%s</strong></a>", html.EscapeString(href), title)
+		return formattedTitle
+	}
+
+	remMaxTextLength := maxLength - unicodeLength(formattedTitle) - unicodeLength(titleTextSeparator)
+
+	if remMaxTextLength <= 0 {
+		return formattedTitle
+	}
+
+	text = sanitizeText(text)
+	text = trimLongText(text, remMaxTextLength)
+
+	formattedText := fmt.Sprintf("%s%s%s", formattedTitle, titleTextSeparator, text)
+	return formattedText
+}
+
+func unicodeLength(text string) int {
+	return utf8string.NewString(text).RuneCount()
 }
 
 func trimLongText(text string, max int) string {
