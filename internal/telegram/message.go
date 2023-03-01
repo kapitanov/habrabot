@@ -29,15 +29,6 @@ func prepareMessage(
 	chatID int64,
 	httpClient *http.Client,
 ) (tgbotapi.Chattable, error) {
-	text := fmt.Sprintf(
-		"<a href=\"%s\"><strong>%s</strong></a>\n\n%s",
-		html.EscapeString(article.LinkURL),
-		article.Title,
-		article.Description,
-	)
-
-	text = sanitizeText(text)
-
 	if article.ImageURL == nil {
 		return createTextMessage(article, chatID), nil
 	}
