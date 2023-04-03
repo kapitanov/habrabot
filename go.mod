@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
-	github.com/mmcdole/gofeed v1.2.0
+	github.com/mmcdole/gofeed v1.2.1
 	github.com/mmcdole/goxpp v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.2
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
