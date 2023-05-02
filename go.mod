@@ -17,7 +17,7 @@ require (
 require (
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/joho/godotenv v1.5.1
-	github.com/rs/zerolog v1.29.0
+	github.com/rs/zerolog v1.29.1
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 )
 
