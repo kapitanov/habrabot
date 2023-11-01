@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -60,8 +59,7 @@ func (t *transmitter) transmit(ctx context.Context, article data.Article) error 
 
 	result, err := t.bot.Send(msg)
 	if err != nil {
-		var tgErr tgbotapi.Error
-		if errors.As(err, &tgErr) && strings.Contains(tgErr.Message, "PHOTO_INVALID_DIMENSIONS") && article.ImageURL != nil {
+		if shouldRetry(article, err) {
 			log.Warn().
 				Err(err).
 				Str("title", article.Title).
@@ -87,6 +85,17 @@ func (t *transmitter) transmit(ctx context.Context, article data.Article) error 
 		Str("id", article.ID).
 		Msg("posted a telegram message")
 	return nil
+}
+
+func shouldRetry(article data.Article, err error) bool {
+	if article.ImageURL == nil {
+		return false
+	}
+
+	str := err.Error()
+
+	return strings.Contains(str, "PHOTO_INVALID_DIMENSIONS") ||
+		strings.Contains(str, "can't parse entities")
 }
 
 func (t *transmitter) createHTTPClient() error {
