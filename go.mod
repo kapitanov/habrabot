@@ -10,7 +10,7 @@ require (
 	github.com/mmcdole/goxpp v1.1.0 // indirect
 	github.com/stretchr/testify v1.8.4
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	go.etcd.io/bbolt v1.3.7
+	go.etcd.io/bbolt v1.3.8
 	golang.org/x/net v0.17.0
 )
 
