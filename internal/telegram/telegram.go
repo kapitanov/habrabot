@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/hashicorp/go-retryablehttp"
@@ -46,6 +47,10 @@ func (t *transmitter) On(ctx context.Context, article data.Article) error {
 		return err
 	}
 
+	return t.transmit(ctx, article)
+}
+
+func (t *transmitter) transmit(ctx context.Context, article data.Article) error {
 	msg, err := prepareMessage(ctx, article, t.chat.ID, t.httpClient.StandardClient())
 	if err != nil {
 		log.Error().Err(err).Msg("unable to prepare telegram message")
@@ -54,6 +59,17 @@ func (t *transmitter) On(ctx context.Context, article data.Article) error {
 
 	result, err := t.bot.Send(msg)
 	if err != nil {
+		if shouldRetry(article, err) {
+			log.Warn().
+				Err(err).
+				Str("title", article.Title).
+				Str("id", article.ID).
+				Msg("unable to send to telegram")
+
+			article.ImageURL = nil
+			return t.transmit(ctx, article)
+		}
+
 		log.Error().
 			Err(err).
 			Str("title", article.Title).
@@ -69,6 +85,17 @@ func (t *transmitter) On(ctx context.Context, article data.Article) error {
 		Str("id", article.ID).
 		Msg("posted a telegram message")
 	return nil
+}
+
+func shouldRetry(article data.Article, err error) bool {
+	if article.ImageURL == nil {
+		return false
+	}
+
+	str := err.Error()
+
+	return strings.Contains(str, "PHOTO_INVALID_DIMENSIONS") ||
+		strings.Contains(str, "can't parse entities")
 }
 
 func (t *transmitter) createHTTPClient() error {

@@ -9,9 +9,8 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"golang.org/x/exp/utf8string"
-
 	"github.com/kapitanov/habrabot/internal/data"
+	"golang.org/x/exp/utf8string"
 )
 
 const (
