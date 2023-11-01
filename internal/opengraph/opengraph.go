@@ -6,13 +6,10 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
-
+	"github.com/kapitanov/habrabot/internal/data"
 	"github.com/kapitanov/habrabot/internal/httpclient"
-
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/html"
-
-	"github.com/kapitanov/habrabot/internal/data"
 )
 
 // Enrich adds opengraph data into the stream of articles.
